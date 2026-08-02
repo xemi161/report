@@ -21,7 +21,8 @@
     --good-bg: oklch(93% 0.06 150);
     --good-fg: oklch(42% 0.13 150);
     --shadow: 0 1px 2px oklch(0% 0 0 / 0.04);
-    --shadow-lg: 0 12px 32px oklch(20% 0.02 260 / 0.16);
+    --shadow-sm: 0 4px 16px oklch(22% 0.02 260 / 0.07);
+    --shadow-lg: 0 16px 40px oklch(20% 0.02 260 / 0.14);
   }
   /* 다크모드보다 레퍼런스 톤(라이트) 유지가 우선이라는 피드백에 따라
      의도적으로 단일 테마로 고정 — OS/뷰어 다크 설정과 무관하게 항상 이 톤을 보여준다. */
@@ -34,7 +35,8 @@
     --warn-bg: oklch(94% 0.08 80); --warn-fg: oklch(45% 0.14 70);
     --danger-bg: oklch(93% 0.09 25); --danger-fg: oklch(48% 0.17 25); --danger-border: oklch(80% 0.12 25);
     --good-bg: oklch(93% 0.06 150); --good-fg: oklch(42% 0.13 150);
-    --shadow: 0 1px 2px oklch(0% 0 0 / 0.04); --shadow-lg: 0 12px 32px oklch(20% 0.02 260 / 0.16);
+    --shadow: 0 1px 2px oklch(0% 0 0 / 0.04); --shadow-sm: 0 4px 16px oklch(22% 0.02 260 / 0.07);
+    --shadow-lg: 0 16px 40px oklch(20% 0.02 260 / 0.14);
   }
 
   *{box-sizing:border-box;}
@@ -62,12 +64,12 @@
     display:flex; align-items:center; gap:20px; flex-wrap:wrap;
   }
   .brand{display:flex; align-items:baseline; gap:9px; margin-right:auto;}
-  .brand .name{font-size:17px; font-weight:700; letter-spacing:-.01em;}
+  .brand .name{font-size:18px; font-weight:700; letter-spacing:-.015em;}
   .brand .who{font-size:12.5px; color:var(--text-muted);}
   .pager{display:flex; align-items:center; gap:2px;}
   .pager button{
-    width:30px; height:30px; border-radius:8px; border:1px solid var(--border);
-    background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:10px; border:1px solid transparent;
+    background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center;
     color:var(--text-muted); transition:background .12s, color .12s;
   }
   .pager button:hover{background:var(--surface-sunken); color:var(--text);}
@@ -77,72 +79,76 @@
   }
   .pager .label{font-size:13px; font-weight:600; min-width:132px; text-align:center; padding:0 4px;}
   .pager .range{font-size:11px; color:var(--text-faint); display:block; font-weight:400; margin-top:1px;}
-  .seg{display:flex; gap:3px; background:var(--surface-sunken); padding:3px; border-radius:10px; border:1px solid var(--border-soft);}
+  .seg{display:flex; gap:3px; background:var(--surface-sunken); padding:3px; border-radius:12px; border:1px solid var(--border-soft);}
   .seg button{
-    padding:6px 14px; border:none; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer;
+    padding:6px 14px; border:none; border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer;
     background:transparent; color:var(--text-muted); transition:background .12s, color .12s, box-shadow .12s;
   }
   .seg button.active{background:var(--surface); color:var(--text); box-shadow:var(--shadow);}
 
-  main{max-width:1120px; margin:0 auto; padding:28px 28px 100px;}
-  .view{display:none; flex-direction:column; gap:18px;}
+  main{max-width:1140px; margin:0 auto; padding:32px 28px 110px;}
+  .view{display:none; flex-direction:column; gap:22px;}
   .view.active{display:flex;}
 
   /* ---------- stat row ---------- */
-  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px;}
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px;}
   .stat{
-    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:16px 18px;
-    display:flex; flex-direction:column; gap:5px;
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; padding:18px 20px;
+    display:flex; flex-direction:column; gap:6px;
   }
   .stat .k{font-size:12px; color:var(--text-muted);}
-  .stat .v{font-size:24px; font-weight:700;}
+  .stat .v{font-size:26px; font-weight:700; letter-spacing:-.02em;}
   .stat .v small{font-size:13px; font-weight:600; color:var(--text-muted); margin-left:3px;}
 
   /* ---------- cards ---------- */
-  .card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px;}
-  .card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px;}
+  .card{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:18px; padding:26px 28px;
+    transition:box-shadow .15s;
+  }
+  .card:hover{box-shadow:var(--shadow-sm);}
+  .card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;}
   .card-title{display:flex; align-items:center; gap:9px;}
-  .card-title h2{font-size:15px; font-weight:700; margin:0;}
+  .card-title h2{font-size:15px; font-weight:600; letter-spacing:-.01em; margin:0;}
   .card-title .count{
     font-size:11.5px; font-weight:700; color:var(--accent-soft-fg); background:var(--accent-soft);
     padding:2px 9px; border-radius:999px;
   }
   .name-edit{
-    border:1px solid transparent; border-radius:7px; padding:3px 7px; font-size:15px; font-weight:700;
-    background:transparent; min-width:60px;
+    border:1px solid transparent; border-radius:8px; padding:3px 7px; font-size:15px; font-weight:700;
+    background:transparent; min-width:60px; transition:background .12s,border-color .12s;
   }
   .name-edit:hover{border-color:var(--border);}
   .name-edit:focus{border-color:var(--accent); outline:none; background:var(--surface-sunken);}
 
-  /* 프로젝트 안의 일감(티켓) 블록 — 분석/설계·개발·테스트 3줄이 항상 그 밑에 딸려온다 */
-  .ticket-block{border:1px solid var(--border-soft); border-radius:11px; padding:14px 16px 4px; margin-bottom:12px; background:var(--surface-sunken);}
-  .ticket-block:last-child{margin-bottom:0;}
-  .ticket-head{display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;}
-  .ticket-head input{background:var(--surface);}
-  .ticket-head input.ticket{width:150px;}
-  .ticket-head .icon-btn{margin-left:auto;}
-  /* ticket-block 배경이 이미 sunken이라, 그 안의 입력은 hover/focus 시 surface로 대비를 줘야 보임 */
-  .ticket-block .row input:hover, .ticket-block .row select:hover,
-  .ticket-block .row input:focus, .ticket-block .row select:focus{background:var(--surface);}
-  .ticket-block .row-detail{background:var(--surface);}
-  .ticket-block .row-detail input{background:var(--surface-sunken);}
+  /* 프로젝트 카드 헤더: 일감번호 → 프로젝트명 순. 프로젝트당 일감은 하나뿐이라 카드 상단에 바로 붙는다 */
+  .card-title input.ticket{background:var(--surface-sunken); width:150px; flex-shrink:0;}
 
   .row-head{
-    display:flex; align-items:center; gap:8px; padding:0 0 8px; margin-bottom:2px; flex-wrap:wrap;
+    display:flex; align-items:center; gap:8px; padding:0 0 10px; margin-bottom:2px; flex-wrap:wrap;
     border-bottom:1px solid var(--border-soft);
     font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);
   }
   .row-head > span{white-space:nowrap;}
   .rows{display:flex; flex-direction:column;}
-  .row{border-bottom:1px solid var(--border-soft); padding:10px 0;}
+  .row{border-bottom:1px solid var(--border-soft); padding:12px 0;}
   .row:last-child{border-bottom:none;}
   .row-main{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
-  .row input[type=text], .row input[type=number], .row select{
-    border:1px solid transparent; border-radius:6px; padding:5px 7px; font-size:13px; transition:background .12s,border-color .12s;
+  /* row-main/simple-row = 메인 목록 행(문자처럼 보이다 hover/focus 시 강조). row-detail은 별도 규칙(항상 보이는 박스형) — 서로 안 겹치게 범위를 분리 */
+  .row-main input[type=text], .row-main input[type=number], .row-main input[type=date], .row-main select,
+  .simple-row input[type=text], .simple-row input[type=number], .simple-row input[type=date], .simple-row select{
+    border:1px solid transparent; border-radius:8px; padding:5px 7px; font-size:13px; transition:background .12s,border-color .12s;
   }
-  .row input:hover, .row select:hover{background:var(--surface-sunken);}
-  .row input:focus, .row select:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
-  .ticket{width:132px; color:var(--text-muted); font-size:12.5px;}
+  .row-main input:hover, .row-main select:hover,
+  .simple-row input:hover, .simple-row select:hover{background:var(--surface-sunken);}
+  .row-main input:focus, .row-main select:focus,
+  .simple-row input:focus, .simple-row select:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+  .ticket{
+    width:132px; color:var(--text-muted); font-size:12.5px;
+    border:1px solid transparent; border-radius:8px; padding:5px 7px; background:transparent;
+    transition:background .12s,border-color .12s;
+  }
+  .ticket:hover{background:var(--surface-sunken);}
+  .ticket:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
   .title-input{flex:1; min-width:160px; font-weight:500;}
   .phase-select{width:96px; color:var(--text-muted);}
   .hours-input{width:56px; text-align:right;}
@@ -154,45 +160,52 @@
   .badge.carry{background:var(--warn-bg); color:var(--warn-fg);}
   .badge.done{background:var(--good-bg); color:var(--good-fg);}
   .icon-btn{
-    border:none; background:transparent; color:var(--text-faint); cursor:pointer; padding:5px; border-radius:6px;
+    border:none; background:transparent; color:var(--text-faint); cursor:pointer; padding:5px; border-radius:8px;
     display:flex; align-items:center; justify-content:center; transition:background .12s,color .12s;
   }
   .icon-btn:hover{background:var(--danger-bg); color:var(--danger-fg);}
   .icon-btn.chevron:hover{background:var(--surface-sunken); color:var(--text);}
   .icon-btn.chevron svg{transition:transform .15s;}
   .icon-btn.chevron.open svg{transform:rotate(90deg);}
-  .row-detail{display:none; flex-direction:column; gap:9px; margin-top:8px; padding:12px 14px; background:var(--surface-sunken); border-radius:9px;}
+  .row-detail{display:none; flex-direction:column; gap:9px; margin-top:8px; padding:14px 16px; background:var(--surface-sunken); border-radius:12px;}
   .row-detail.open{display:flex;}
   .row-detail label{font-size:11.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;}
   .row-detail label.inline{flex-direction:row; align-items:center; justify-content:space-between; gap:12px;}
-  .row-detail input{border:1px solid var(--border); border-radius:6px; padding:5px 9px; background:var(--surface);}
+  .row-detail input{border:1px solid var(--border-soft); border-radius:8px; padding:5px 9px; background:var(--surface);}
   .row-detail label.inline input{width:160px;}
   .row-detail .note-field input{width:100%;}
 
-  .simple-row{display:flex; align-items:center; gap:10px;}
+  .simple-row{display:flex; align-items:center; gap:12px;}
   .simple-row .title-input{flex:1;}
 
-  .ghost{
-    margin-top:12px; align-self:flex-start; border:1.5px dashed var(--border); background:transparent;
-    color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer;
-    display:flex; align-items:center; gap:6px; transition:background .12s,border-color .12s,color .12s;
+  .mode-toggle{
+    border:none; background:var(--surface-sunken); color:var(--text-muted);
+    padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:600; cursor:pointer; white-space:nowrap;
+    transition:background .12s,color .12s;
   }
-  .ghost:hover{background:var(--surface-sunken); border-color:var(--text-faint); color:var(--text);}
+  .mode-toggle:hover{background:var(--accent-soft); color:var(--accent-soft-fg);}
+
+  .ghost{
+    margin-top:12px; align-self:flex-start; border:none; background:transparent;
+    color:var(--text-muted); padding:7px 12px; border-radius:10px; font-size:12.5px; font-weight:600; cursor:pointer;
+    display:flex; align-items:center; gap:6px; transition:background .12s,color .12s;
+  }
+  .ghost:hover{background:var(--surface-sunken); color:var(--accent);}
 
   .btn{
-    border:none; background:var(--accent); color:oklch(100% 0 0); padding:10px 20px; border-radius:10px;
-    font-size:13.5px; font-weight:700; cursor:pointer; transition:background .12s;
+    border:none; background:var(--accent); color:oklch(100% 0 0); padding:11px 22px; border-radius:12px;
+    font-size:13.5px; font-weight:700; cursor:pointer; transition:background .12s,box-shadow .12s;
   }
-  .btn:hover{background:var(--accent-hover);}
+  .btn:hover{background:var(--accent-hover); box-shadow:var(--shadow-sm);}
   .btn.outline{background:transparent; border:1px solid var(--border); color:var(--text);}
-  .btn.outline:hover{background:var(--surface-sunken);}
+  .btn.outline:hover{background:var(--surface-sunken); box-shadow:none;}
   .btn:disabled{opacity:.4; cursor:not-allowed;}
 
   .submit-bar{display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:4px;}
 
   /* ---------- empty / locked states ---------- */
   .empty-state{
-    background:var(--surface); border:1.5px dashed var(--border); border-radius:14px;
+    background:var(--surface); border:1.5px dashed var(--border); border-radius:18px;
     padding:56px 24px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;
   }
   .empty-state .icon{color:var(--text-faint);}
@@ -202,15 +215,18 @@
 
   .locked-banner{
     display:flex; align-items:center; gap:10px; background:var(--accent-soft); color:var(--accent-soft-fg);
-    border-radius:10px; padding:11px 16px; font-size:12.5px; font-weight:600;
+    border-radius:12px; padding:11px 16px; font-size:12.5px; font-weight:600;
   }
   .locked-banner svg{flex-shrink:0;}
 
   /* ---------- history ---------- */
   /* 히스토리 카드는 아코디언이 아니라 클릭 시 "작성" 탭의 해당 주로 이동하는 내비게이션 행 */
-  .hist-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; cursor:pointer; transition:border-color .12s;}
-  .hist-card:hover{border-color:var(--text-faint);}
-  .hist-summary{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px;}
+  .hist-card{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:18px; overflow:hidden;
+    cursor:pointer; transition:border-color .12s, box-shadow .15s;
+  }
+  .hist-card:hover{border-color:var(--text-faint); box-shadow:var(--shadow-sm);}
+  .hist-summary{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 24px;}
   .hist-left{display:flex; flex-direction:column; gap:3px;}
   .hist-left .wk{font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px;}
   .hist-left .rng{font-size:12px; color:var(--text-muted);}
@@ -229,14 +245,14 @@
   }
   .modal-backdrop.open{display:flex;}
   .modal{
-    background:var(--surface); border-radius:16px; box-shadow:var(--shadow-lg); width:100%; max-width:600px;
-    max-height:85vh; display:flex; flex-direction:column; border:1px solid var(--border);
+    background:var(--surface); border-radius:20px; box-shadow:var(--shadow-lg); width:100%; max-width:600px;
+    max-height:85vh; display:flex; flex-direction:column; border:1px solid var(--border-soft);
   }
   .modal-head{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border-soft);}
   .modal-head h3{margin:0; font-size:15.5px; font-weight:700;}
   .modal-body{padding:20px 24px; overflow:auto;}
   .modal-body pre{
-    background:var(--surface-sunken); border:1px solid var(--border-soft); border-radius:10px; padding:16px 18px;
+    background:var(--surface-sunken); border:1px solid var(--border-soft); border-radius:12px; padding:16px 18px;
     font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; line-height:1.65; white-space:pre-wrap;
     word-break:break-word; margin:0;
   }
@@ -244,7 +260,7 @@
 
   .toast{
     position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
-    background:var(--text); color:var(--bg); padding:11px 20px; border-radius:10px; font-size:13px; font-weight:600;
+    background:var(--text); color:var(--bg); padding:11px 20px; border-radius:12px; font-size:13px; font-weight:600;
     box-shadow:var(--shadow-lg); transition:opacity .18s, transform .18s; pointer-events:none; z-index:60;
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
@@ -326,14 +342,11 @@
     return { id: nextId(), ticket:"", title:"", phase:"", hours:"", days:"", completion:"", carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" };
   }
 
-  // 프로젝트의 일감(티켓)은 티켓번호+제목이 첫 줄. 그 아래 세부 항목은 고정 3단계가 아니라
-  // 필요할 때마다 추가하며, 구분(분석/설계·개발·테스트)이 같은 항목을 여러 개 넣을 수도 있다
-  // (예: 티켓 하나에 "로그인 기능"·"2차인증 기능"처럼 개발 항목 2개).
+  // 프로젝트당 일감(티켓)은 하나뿐이라 티켓번호는 프로젝트에 바로 붙는다(project.ticket).
+  // 세부 항목은 고정 3단계가 아니라 필요할 때마다 추가하며, 구분(분석/설계·개발·테스트)이
+  // 같은 항목을 여러 개 넣을 수도 있다 (예: 티켓 하나에 "로그인 기능"·"2차인증 기능"처럼 개발 항목 2개).
   function blankSubitem(){
     return { id: nextId(), title:"", phase:"", hours:"", days:"", completion:"", carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" };
-  }
-  function blankTicket(){
-    return { id: nextId(), ticket:"", title:"", subitems: [] };
   }
 
   // 과거→현재→미래 순. 모든 주가(제출 여부와 무관하게) 항상 수정 가능하다는 요구사항 반영 —
@@ -345,21 +358,17 @@
       etc: [ { id:2, title:"파트 주간회의", hours:1 } ],
       vacation: [] },
     { status: "submitted", label: "7월 4주", range: "07.17(금) ~ 07.23(목)",
-      projects: [ { id:1, name:"GTPP", tickets:[
-        { id:11, ticket:"NHNKCP-개발1팀/23", title:"외국환 보고서 현행화", subitems:[
-          { ...blankSubitem(), phase:"분석/설계", hours:4, days:1, completion:100 },
-          { ...blankSubitem(), phase:"개발", hours:8, days:3, completion:40 }
-        ] }
-      ]} ],
+      projects: [ { id:1, name:"GTPP", ticket:"NHNKCP-개발1팀/23", subitems:[
+        { ...blankSubitem(), phase:"분석/설계", hours:4, days:1, completion:100 },
+        { ...blankSubitem(), phase:"개발", hours:8, days:3, completion:40 }
+      ] } ],
       dev: [ { id:21, ticket:"", title:"레거시 배치 점검", phase:"개발", hours:4, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
       etc: [ { id:22, title:"파트 주간회의", hours:1 } ],
       vacation: [ { id:23, date:"2026-07-21", hours:8 } ] },
     { status: "submitted", label: "7월 5주", range: "07.24(금) ~ 07.30(목)",
-      projects: [ { id:1, name:"GTPP", tickets:[
-        { id:31, ticket:"NHNKCP-개발1팀/23", title:"외국환 보고서 현행화", subitems:[
-          { ...blankSubitem(), phase:"개발", hours:8, days:4, completion:55, testDate:"2026-08-03" }
-        ] }
-      ]} ],
+      projects: [ { id:1, name:"GTPP", ticket:"NHNKCP-개발1팀/23", subitems:[
+        { ...blankSubitem(), phase:"개발", hours:8, days:4, completion:55, testDate:"2026-08-03" }
+      ] } ],
       dev: [
         { id:32, ticket:"NHNKCP-개발1팀/26", title:"2차인증 프로세스 개선", phase:"분석/설계", hours:2, days:1, completion:5, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" },
         { id:33, ticket:"", title:"사내 위키 정리", phase:"개발", hours:2, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" }
@@ -369,23 +378,22 @@
     { status: "draft", label: "8월 1주", range: "07.31(금) ~ 08.06(목)",
       stats: { avgManWeek: "0.61", activeProjects: 2 },
       projects: [
-        { id: 1, name: "GTPP", tickets: [
-          { id: 101, ticket: "NHNKCP-개발1팀/23", title: "외국환 보고서 현행화", subitems:[
-            { ...blankSubitem(), phase:"개발", hours:8, days:2, completion:60, testDate:"2026-08-10", note:"외부 연계사 일정으로 테스트 1주 연기" }
-          ] }
+        { id: 1, name: "GTPP", ticket: "NHNKCP-개발1팀/23", subitems:[
+          { ...blankSubitem(), phase:"개발", hours:8, days:2, completion:60, testDate:"2026-08-10", note:"외부 연계사 일정으로 테스트 1주 연기" }
         ]},
-        { id: 2, name: "2차인증 리뉴얼", tickets: [
-          { id: 102, ticket: "NHNKCP-개발1팀/40", title: "2차인증 리뉴얼", subitems:[
-            { ...blankSubitem(), title:"로그인 기능", phase:"개발", hours:4, days:1, completion:30 },
-            { ...blankSubitem(), title:"2차인증 기능", phase:"개발", hours:3, days:1, completion:10 }
-          ] }
+        { id: 2, name: "2차인증 리뉴얼", ticket: "NHNKCP-개발1팀/40", subitems:[
+          { ...blankSubitem(), title:"로그인 기능", phase:"개발", hours:4, days:1, completion:30 },
+          { ...blankSubitem(), title:"2차인증 기능", phase:"개발", hours:3, days:1, completion:10 }
         ]}
       ],
       dev: [
         { id: 201, ticket: "NHNKCP-개발1팀/26", title: "2차인증 프로세스 개선", phase: "분석/설계", hours: 1, days: 1, completion: 5, carriedOver: true, devDoneDate:"", testDate: "", deployDate:"", note: "" }
       ],
       etc: [ { id: 301, title: "파트 주간회의", hours: 1 } ],
-      vacation: [ { id: 401, date: "2026-08-01", hours: 8 } ] },
+      vacation: [
+        { id: 401, date: "2026-08-01", hours: 8 },
+        { id: 402, date: "2026-08-05", endDate: "2026-08-06", period: true, hours: 16 }
+      ] },
     { status: "empty", label: "8월 2주", range: "08.07(금) ~ 08.13(목)" },
   ];
   let weekIdx = 3; // "8월 1주" (작성중인 이번 주)
@@ -404,7 +412,7 @@
   function computeTotals(wk){
     const withDays = i => (Number(i.hours)||0) * (Number(i.days) || 1);
     let totalHours = 0;
-    (wk.projects||[]).forEach(p => (p.tickets||[]).forEach(t => (t.subitems||[]).forEach(i => totalHours += withDays(i))));
+    (wk.projects||[]).forEach(p => (p.subitems||[]).forEach(i => totalHours += withDays(i)));
     (wk.dev||[]).forEach(i => totalHours += withDays(i));
     (wk.etc||[]).forEach(i => totalHours += Number(i.hours)||0);
     (wk.vacation||[]).forEach(i => totalHours += Number(i.hours)||0);
@@ -443,10 +451,15 @@
       </div>`;
   }
 
+  // 휴가는 하루짜리(date만)와 기간짜리(date~endDate)를 행마다 토글로 전환할 수 있다.
+  // 기간으로 전환해도 항목 개수는 그대로 1건 — 시간은 기간 전체 합산치를 사용자가 직접 입력.
   function simpleRow(item, kind){
     if (kind === "vacation"){
+      const isPeriod = !!item.period;
       return `<div class="row" data-id="${item.id}"><div class="simple-row">
         <input type="date" value="${esc(item.date)}" data-field="date">
+        ${isPeriod ? `<span class="unit">~</span><input type="date" value="${esc(item.endDate)}" data-field="endDate">` : ""}
+        <button class="mode-toggle" type="button" data-toggle-period>${isPeriod ? "하루로" : "기간으로"}</button>
         <span class="unit">시간</span>
         <input class="hours-input tabular" type="number" step="0.5" value="${item.hours ?? ""}" data-field="hours">
         <button class="icon-btn" data-remove title="삭제" style="margin-left:auto;">${ICON_TRASH}</button>
@@ -484,14 +497,14 @@
   }
 
   /**
-   * 일감 안의 세부 항목 1줄. 티켓번호는 상위 일감 헤더에만 있고 여기엔 없음.
+   * 프로젝트(=일감 하나) 안의 세부 항목 1줄. 티켓번호는 프로젝트 카드 헤더에만 있고 여기엔 없음.
    * 구분은 고정 슬롯이 아니라 선택형이라 같은 구분(예: 개발)을 여러 개 추가할 수 있음
-   * (예: 한 티켓에 "로그인 기능"·"2차인증 기능" 두 개발 항목).
+   * (예: 한 프로젝트에 "로그인 기능"·"2차인증 기능" 두 개발 항목).
    */
-  function ticketSubitemRow(ticketId, item){
+  function projectSubitemRow(projectId, item){
     const detailId = "d" + item.id;
     return `
-      <div class="row" data-ticket-id="${ticketId}" data-item-id="${item.id}">
+      <div class="row" data-project-id="${projectId}" data-item-id="${item.id}">
         <div class="row-main">
           <input class="title-input" type="text" value="${esc(item.title)}" placeholder="세부 업무명 (예: 로그인 기능)" data-field="title">
           <select class="phase-select" data-field="phase">${phaseOptions(item.phase)}</select>
@@ -518,33 +531,15 @@
       </div>`;
   }
 
-  /** 프로젝트 안의 일감(티켓) 블록: 첫 줄은 티켓번호+제목, 그 아래 세부 항목은 필요할 때마다 추가 */
-  function ticketBlock(ticket){
-    return `
-      <div class="ticket-block" data-ticket="${ticket.id}">
-        <div class="ticket-head">
-          <input class="ticket" type="text" value="${esc(ticket.ticket)}" placeholder="티켓번호" data-ticket-field="ticket">
-          <input class="title-input" type="text" value="${esc(ticket.title)}" placeholder="일감 제목" data-ticket-field="title">
-          <button class="icon-btn" data-remove-ticket title="일감 삭제">${ICON_TRASH}</button>
-        </div>
-        ${ticket.subitems.length ? subitemHeaderRow() : ""}
-        <div class="rows" data-subitems>${ticket.subitems.map(i => ticketSubitemRow(ticket.id, i)).join("") || `<p class="empty-hint">아직 항목이 없습니다.</p>`}</div>
-        <button class="ghost" data-add-subitem>+ 항목 추가</button>
-      </div>`;
-  }
-
   /** 완료율<100인 단계만 다음 주로 이월 (기타/휴가 제외, dev 그룹 항목도 동일 규칙) — docs/project-handoff-summary.md 4.3 규칙 */
   function buildCarriedOverDraft(fromWeek, label, range){
     const draft = { status:"draft", label, range, stats:{avgManWeek:"0.00", activeProjects:0}, projects:[], dev:[], etc:[], vacation:[] };
     (fromWeek?.projects || []).forEach(p => {
-      const carriedTickets = (p.tickets || []).map(t => {
-        const carriedSubitems = (t.subitems || [])
-          .filter(i => (Number(i.hours) > 0 || Number(i.completion) > 0) && Number(i.completion) < 100)
-          .map(i => ({ ...blankSubitem(), title: i.title, phase: i.phase, completion: i.completion, carriedOver: true }));
-        return carriedSubitems.length ? { id: nextId(), ticket: t.ticket, title: t.title, subitems: carriedSubitems } : null;
-      }).filter(Boolean);
-      if (carriedTickets.length){
-        draft.projects.push({ id: nextId(), name: p.name, tickets: carriedTickets });
+      const carriedSubitems = (p.subitems || [])
+        .filter(i => (Number(i.hours) > 0 || Number(i.completion) > 0) && Number(i.completion) < 100)
+        .map(i => ({ ...blankSubitem(), title: i.title, phase: i.phase, completion: i.completion, carriedOver: true }));
+      if (carriedSubitems.length){
+        draft.projects.push({ id: nextId(), name: p.name, ticket: p.ticket, subitems: carriedSubitems });
       }
     });
     (fromWeek?.dev || []).filter(i => Number(i.completion) < 100).forEach(i => {
@@ -593,18 +588,20 @@
 
     body.push(`<div style="display:flex; flex-direction:column; gap:18px;">`);
 
-    // 프로젝트 — 일감(티켓) 단위로 생성하고, 그 안에 분석/설계·개발·테스트 3단계가 항상 딸려온다
+    // 프로젝트 — 프로젝트당 일감(티켓)은 하나뿐이라 카드 헤더에 티켓번호를 바로 붙이고, 세부 항목은 그때그때 추가
     (wk.projects || []).forEach(proj => {
       body.push(`
         <div class="card" data-project="${proj.id}">
           <div class="card-head">
             <div class="card-title">
+              <input class="ticket" type="text" value="${esc(proj.ticket)}" placeholder="티켓번호" data-project-ticket>
               <input class="name-edit" type="text" value="${esc(proj.name)}" data-project-name>
-              <span class="count">${proj.tickets.length}건</span>
             </div>
+            <span class="count">${proj.subitems.length}건</span>
           </div>
-          <div data-tickets>${proj.tickets.map(t => ticketBlock(t)).join("") || `<p style="color:var(--text-faint);font-size:12.5px;padding:8px 0;">아직 일감이 없습니다.</p>`}</div>
-          <button class="ghost" data-add-ticket>+ 일감 추가</button>
+          ${proj.subitems.length ? subitemHeaderRow() : ""}
+          <div class="rows" data-subitems>${proj.subitems.map(i => projectSubitemRow(proj.id, i)).join("") || `<p class="empty-hint">아직 항목이 없습니다.</p>`}</div>
+          <button class="ghost" data-add-subitem>+ 항목 추가</button>
         </div>`);
     });
     body.push(`<button class="ghost" data-add-project style="align-self:flex-start;">+ 새 프로젝트</button>`);
@@ -652,7 +649,7 @@
       });
     });
 
-    // dev/etc/vacation 항목 (data-id를 가진 .row만 대상 — 일감 단계행(.row[data-ticket-id])은 아래에서 별도 처리)
+    // dev/etc/vacation 항목 (data-id를 가진 .row만 대상 — 프로젝트 세부 항목행(.row[data-project-id])은 아래에서 별도 처리)
     writeView.querySelectorAll(".row[data-id] [data-field]").forEach(el => {
       el.addEventListener("input", () => {
         const row = el.closest(".row");
@@ -673,12 +670,14 @@
       });
     });
 
+    writeView.querySelectorAll(".row[data-id]").forEach(row => wireVacationToggle(row, wk));
+
     writeView.querySelectorAll("[data-add-item]").forEach(btn => {
       btn.addEventListener("click", () => {
         const card = btn.closest(".card");
         const itemsEl = card.querySelector("[data-items]");
         const group = card.dataset.group;
-        const item = group === "vacation" ? { id: nextId(), date:"", hours:"" } : group === "etc" ? { id: nextId(), title:"", hours:"" } : blankItem();
+        const item = group === "vacation" ? { id: nextId(), date:"", endDate:"", period:false, hours:"" } : group === "etc" ? { id: nextId(), title:"", hours:"" } : blankItem();
         wk[group].push(item);
         if (group === "dev" && !card.querySelector(".row-head")) itemsEl.insertAdjacentHTML("beforebegin", itemHeaderRow());
         itemsEl.insertAdjacentHTML("beforeend", group === "dev" ? itemRow(item) : simpleRow(item, group));
@@ -687,11 +686,11 @@
       });
     });
 
-    // 프로젝트 일감(티켓) 안의 세부 항목 필드
-    writeView.querySelectorAll(".row[data-ticket-id] [data-field]").forEach(el => {
+    // 프로젝트 세부 항목 필드
+    writeView.querySelectorAll(".row[data-project-id] [data-field]").forEach(el => {
       el.addEventListener("input", () => {
         const row = el.closest(".row");
-        const item = findSubitem(wk, Number(row.dataset.ticketId), Number(row.dataset.itemId));
+        const item = findSubitem(wk, Number(row.dataset.projectId), Number(row.dataset.itemId));
         if (!item) return;
         const field = el.dataset.field;
         const val = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
@@ -703,63 +702,38 @@
     writeView.querySelectorAll("[data-remove-subitem]").forEach(btn => {
       btn.addEventListener("click", () => {
         const row = btn.closest(".row");
-        const block = btn.closest(".ticket-block");
-        const ticket = findTicket(wk, Number(block.dataset.ticket));
-        if (ticket) ticket.subitems = ticket.subitems.filter(i => i.id !== Number(row.dataset.itemId));
+        const proj = wk.projects.find(p => p.id === Number(row.dataset.projectId));
+        if (proj) proj.subitems = proj.subitems.filter(i => i.id !== Number(row.dataset.itemId));
         row.remove();
       });
     });
 
     writeView.querySelectorAll("[data-add-subitem]").forEach(btn => {
       btn.addEventListener("click", () => {
-        const block = btn.closest(".ticket-block");
-        const ticket = findTicket(wk, Number(block.dataset.ticket));
+        const card = btn.closest(".card");
+        const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
         const item = blankSubitem();
-        ticket.subitems.push(item);
-        const holder = block.querySelector("[data-subitems]");
+        proj.subitems.push(item);
+        const holder = card.querySelector("[data-subitems]");
         holder.querySelector("p")?.remove();
-        if (!block.querySelector(".row-head")) holder.insertAdjacentHTML("beforebegin", subitemHeaderRow());
-        holder.insertAdjacentHTML("beforeend", ticketSubitemRow(ticket.id, item));
+        if (!card.querySelector(".row-head")) holder.insertAdjacentHTML("beforebegin", subitemHeaderRow());
+        holder.insertAdjacentHTML("beforeend", projectSubitemRow(proj.id, item));
         wireSubitemRowOnce(holder.lastElementChild, wk);
+        card.querySelector(".count").textContent = proj.subitems.length + "건";
       });
     });
 
-    writeView.querySelectorAll("[data-ticket-field]").forEach(el => {
+    writeView.querySelectorAll("[data-project-ticket]").forEach(el => {
       el.addEventListener("input", () => {
-        const ticket = findTicket(wk, Number(el.closest(".ticket-block").dataset.ticket));
-        if (ticket) ticket[el.dataset.ticketField] = el.value;
-      });
-    });
-
-    writeView.querySelectorAll("[data-remove-ticket]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const block = btn.closest(".ticket-block");
-        const card = btn.closest(".card");
-        const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
-        proj.tickets = proj.tickets.filter(t => t.id !== Number(block.dataset.ticket));
-        block.remove();
-        card.querySelector(".count").textContent = proj.tickets.length + "건";
-      });
-    });
-
-    writeView.querySelectorAll("[data-add-ticket]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const card = btn.closest(".card");
-        const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
-        const ticket = blankTicket();
-        proj.tickets.push(ticket);
-        const holder = card.querySelector("[data-tickets]");
-        holder.querySelector("p")?.remove();
-        holder.insertAdjacentHTML("beforeend", ticketBlock(ticket));
-        wireTicketBlockOnce(holder.lastElementChild, wk);
-        card.querySelector(".count").textContent = proj.tickets.length + "건";
+        const proj = wk.projects.find(p => p.id === Number(el.closest(".card").dataset.project));
+        if (proj) proj.ticket = el.value;
       });
     });
 
     const addProjectBtn = writeView.querySelector("[data-add-project]");
     if (addProjectBtn){
       addProjectBtn.addEventListener("click", () => {
-        const proj = { id: nextId(), name: "새 프로젝트", tickets: [] };
+        const proj = { id: nextId(), name: "새 프로젝트", ticket: "", subitems: [] };
         wk.projects.push(proj);
         renderWrite();
       });
@@ -792,51 +766,40 @@
       removeFromState(wk, Number(rowEl.dataset.id));
       rowEl.remove();
     }));
+    wireVacationToggle(rowEl, wk);
   }
 
-  /** 새로 추가된 .ticket-block 하나(3개 단계행 포함)에 이벤트를 붙인다. */
-  function wireTicketBlockOnce(blockEl, wk){
-    blockEl.querySelectorAll("[data-ticket-field]").forEach(el => el.addEventListener("input", () => {
-      const ticket = findTicket(wk, Number(blockEl.dataset.ticket));
-      if (ticket) ticket[el.dataset.ticketField] = el.value;
-    }));
-    blockEl.querySelectorAll(".row[data-ticket-id]").forEach(row => wireSubitemRowOnce(row, wk));
-    blockEl.querySelector("[data-add-subitem]")?.addEventListener("click", () => {
-      const ticket = findTicket(wk, Number(blockEl.dataset.ticket));
-      const item = blankSubitem();
-      ticket.subitems.push(item);
-      const holder = blockEl.querySelector("[data-subitems]");
-      holder.querySelector("p")?.remove();
-      if (!blockEl.querySelector(".row-head")) holder.insertAdjacentHTML("beforebegin", subitemHeaderRow());
-      holder.insertAdjacentHTML("beforeend", ticketSubitemRow(ticket.id, item));
-      wireSubitemRowOnce(holder.lastElementChild, wk);
-    });
-    blockEl.querySelector("[data-remove-ticket]")?.addEventListener("click", () => {
-      const card = blockEl.closest(".card");
-      const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
-      proj.tickets = proj.tickets.filter(t => t.id !== Number(blockEl.dataset.ticket));
-      blockEl.remove();
-      card.querySelector(".count").textContent = proj.tickets.length + "건";
+  /** 휴가 행의 "하루로"/"기간으로" 토글 — 레이아웃이 바뀌므로 행 전체를 다시 그려서 교체한다. */
+  function wireVacationToggle(rowEl, wk){
+    rowEl.querySelector("[data-toggle-period]")?.addEventListener("click", () => {
+      const item = wk.vacation.find(i => i.id === Number(rowEl.dataset.id));
+      if (!item) return;
+      item.period = !item.period;
+      if (!item.period) item.endDate = "";
+      const tmp = document.createElement("div");
+      tmp.innerHTML = simpleRow(item, "vacation");
+      const replacement = tmp.firstElementChild;
+      rowEl.replaceWith(replacement);
+      wireRowOnce(replacement, wk);
     });
   }
 
-  /** 일감 세부 항목 행 하나(신규 추가분)에 이벤트를 붙인다. */
+  /** 프로젝트 세부 항목 행 하나(신규 추가분)에 이벤트를 붙인다. */
   function wireSubitemRowOnce(rowEl, wk){
     rowEl.querySelectorAll("[data-toggle]").forEach(btn => btn.addEventListener("click", () => {
       const panel = document.getElementById(btn.dataset.toggle);
       panel.classList.toggle("open"); btn.classList.toggle("open");
     }));
     rowEl.querySelectorAll("[data-field]").forEach(el => el.addEventListener("input", () => {
-      const item = findSubitem(wk, Number(rowEl.dataset.ticketId), Number(rowEl.dataset.itemId));
+      const item = findSubitem(wk, Number(rowEl.dataset.projectId), Number(rowEl.dataset.itemId));
       if (!item) return;
       const val = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
       item[el.dataset.field] = val;
       if (el.dataset.field === "completion") toggleDoneBadge(rowEl, val);
     }));
     rowEl.querySelector("[data-remove-subitem]")?.addEventListener("click", () => {
-      const block = rowEl.closest(".ticket-block");
-      const ticket = findTicket(wk, Number(block.dataset.ticket));
-      if (ticket) ticket.subitems = ticket.subitems.filter(i => i.id !== Number(rowEl.dataset.itemId));
+      const proj = wk.projects.find(p => p.id === Number(rowEl.dataset.projectId));
+      if (proj) proj.subitems = proj.subitems.filter(i => i.id !== Number(rowEl.dataset.itemId));
       rowEl.remove();
     });
   }
@@ -868,16 +831,9 @@
     const idx = arr.findIndex(i => i.id === id);
     if (idx > -1) arr.splice(idx, 1);
   }
-  function findTicket(wk, ticketId){
-    for (const proj of wk.projects || []){
-      const t = proj.tickets.find(t => t.id === ticketId);
-      if (t) return t;
-    }
-    return null;
-  }
-  function findSubitem(wk, ticketId, itemId){
-    const t = findTicket(wk, ticketId);
-    return t ? (t.subitems.find(i => i.id === itemId) || null) : null;
+  function findSubitem(wk, projectId, itemId){
+    const proj = (wk.projects || []).find(p => p.id === projectId);
+    return proj ? (proj.subitems.find(i => i.id === itemId) || null) : null;
   }
 
   // ---------- markdown preview / export ----------
@@ -910,21 +866,19 @@
       return out;
     };
 
-    // 일감의 세부 항목은 손댄 흔적(시간 또는 진행률)이 있을 때만 한 줄로 내보낸다.
-    // 같은 티켓에 항목이 여러 개면(예: 개발 항목 2개) 항목 수만큼 줄이 나뉜다 (스키마상 항목 1개 = 줄 1개).
+    // 프로젝트의 세부 항목은 손댄 흔적(시간 또는 진행률)이 있을 때만 한 줄로 내보낸다.
+    // 같은 프로젝트에 항목이 여러 개면(예: 개발 항목 2개) 항목 수만큼 줄이 나뉜다 (스키마상 항목 1개 = 줄 1개).
     const subitemTouched = (i) => (i.hours !== "" && i.hours != null) || (i.completion !== "" && i.completion != null);
 
-    if (wk.projects && wk.projects.some(p => p.tickets.some(t => t.subitems.some(subitemTouched)))){
+    if (wk.projects && wk.projects.some(p => (p.subitems||[]).some(subitemTouched))){
       lines.push("## 프로젝트", "");
       wk.projects.forEach(p => {
-        const touchedTickets = p.tickets.filter(t => t.subitems.some(subitemTouched));
-        if (!touchedTickets.length) return;
+        const touched = (p.subitems||[]).filter(subitemTouched);
+        if (!touched.length) return;
         lines.push(`### ${p.name}`, "");
-        touchedTickets.forEach(t => {
-          t.subitems.filter(subitemTouched).forEach(i => {
-            lines.push(fmtItem({ ticket: t.ticket, title: i.title || t.title, phase: i.phase, ...i }));
-            lines.push(...scheduleLines(i));
-          });
+        touched.forEach(i => {
+          lines.push(fmtItem({ ...i, ticket: p.ticket, title: i.title || p.name }));
+          lines.push(...scheduleLines(i));
         });
         lines.push("");
       });
@@ -941,7 +895,10 @@
     }
     if (wk.vacation && wk.vacation.length){
       lines.push("## 휴가", "");
-      wk.vacation.forEach(i => lines.push(`- ${i.date || "(날짜 없음)"}${i.hours !== "" && i.hours != null ? " — " + i.hours + "h" : ""}`));
+      wk.vacation.forEach(i => {
+        const dateLabel = i.period && i.endDate ? `${i.date || "(날짜 없음)"} ~ ${i.endDate}` : (i.date || "(날짜 없음)");
+        lines.push(`- ${dateLabel}${i.hours !== "" && i.hours != null ? " — " + i.hours + "h" : ""}`);
+      });
       lines.push("");
     }
 

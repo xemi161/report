@@ -58,6 +58,7 @@ DATA-->
   - 이월된 항목이면 줄 끝에 `(이월)` 표시
 - 일정(개발완료일/테스트예정일/배포예정일)이나 비고가 있으면 항목 아래 들여쓰기로 추가 (없는 필드는 생략)
 - 기타/휴가 그룹은 구분·완료율 없이 `- {업무명 또는 날짜} — {시간}`만
+- 휴가가 기간(여러 날)이면 날짜 자리에 `{시작일} ~ {종료일}`로 표기하고, 시간은 기간 전체 합산치 하나만 씀(일별로 나누지 않음)
 
 ## 3. 기계가 읽는 영역 (JSON 데이터 블록)
 
@@ -110,7 +111,14 @@ DATA-->
     {
       "group": "vacation",
       "date": "2026-08-01",
+      "endDate": null,
       "hours": 8
+    },
+    {
+      "group": "vacation",
+      "date": "2026-08-05",
+      "endDate": "2026-08-06",
+      "hours": 16
     }
   ],
   "totalHours": 40,
@@ -133,12 +141,13 @@ DATA-->
 | `devDoneDate` / `testDate` / `deployDate` | project, dev | 선택 | ISO 날짜 문자열 또는 `null` |
 | `note` | project, dev | 선택 | 비고(주로 일정 변경 사유) |
 | `carriedOver` | project, dev | 선택(기본 false) | 지난주 미완료 항목이 이월된 것인지 |
-| `date` | vacation | 필수(vacation만) | 휴가 날짜 |
+| `date` | vacation | 필수(vacation만) | 휴가 시작일(하루짜리면 그 하루) |
+| `endDate` | vacation | 선택 | 기간 휴가의 종료일. 하루짜리면 `null` |
 
 **필수값 검증 규칙** (요청하신 대로)
 - project/dev 그룹: 티켓번호, 업무명, 완료율만 필수. 시간·일수·일정·비고는 선택
 - etc 그룹: 업무명 필수, 시간 선택
-- vacation 그룹: 날짜 필수, 시간 선택
+- vacation 그룹: 날짜(`date`) 필수, `endDate`·시간 선택. `endDate`가 있으면 기간 휴가 — 일별로 항목을 쪼개지 않고 한 항목(`hours`는 기간 전체 합산치)으로 유지
 
 **맨위크 계산**
 ```
