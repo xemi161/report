@@ -4,6 +4,10 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 .kotlin/
 
+# IntelliJ (own build output, separate from Gradle's build/ — must stay untracked
+# or IntelliJ runs serve stale resources that silently diverge from src/)
+out/
+
 # IDE
 .idea/
 *.iml
