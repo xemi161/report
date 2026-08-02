@@ -114,7 +114,7 @@ public class MdExportService {
         if (item.getTicket() != null && !item.getTicket().isBlank()) {
             sb.append(item.getTicket()).append(" : ");
         }
-        sb.append(item.getTitle());
+        sb.append(item.displayTitle());
         if (item.getPhase() != null) {
             sb.append(" [").append(item.getPhase().shortLabel()).append("]");
         }
@@ -151,7 +151,7 @@ public class MdExportService {
         }
         sb.append("## ").append(group.label()).append("\n\n");
         for (ReportItem item : items) {
-            String label = group == Group.VACATION ? item.getDate().toString() : item.getTitle();
+            String label = group == Group.VACATION ? vacationDateLabel(item) : item.getTitle();
             sb.append("- ").append(label);
             if (item.getHours() != null) {
                 sb.append(" — ").append(formatPlainNumber(item.getHours())).append("h");
@@ -159,6 +159,14 @@ public class MdExportService {
             sb.append("\n");
         }
         sb.append("\n");
+    }
+
+    /** 기간 휴가는 "{시작일} ~ {종료일}", 하루짜리는 날짜 하나만. */
+    private String vacationDateLabel(ReportItem item) {
+        if (item.isPeriodVacation()) {
+            return item.getDate() + " ~ " + item.getEndDate();
+        }
+        return item.getDate().toString();
     }
 
     private String formatKoreanDate(LocalDate date) {
@@ -220,7 +228,7 @@ public class MdExportService {
         map.put("project", item.getGroup() == Group.PROJECT && item.getProject() != null
                 ? item.getProject().getName() : null);
         map.put("ticket", item.getTicket());
-        map.put("title", item.getTitle());
+        map.put("title", item.displayTitle());
         map.put("phase", item.getPhase() != null ? item.getPhase().label() : null);
         map.put("hours", item.getHours() != null ? numberForJson(item.getHours()) : null);
         map.put("days", item.daysOrDefault());
@@ -247,6 +255,7 @@ public class MdExportService {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("group", "vacation");
         map.put("date", item.getDate().toString());
+        map.put("endDate", item.getEndDate() != null ? item.getEndDate().toString() : null);
         if (item.getHours() != null) {
             map.put("hours", numberForJson(item.getHours()));
         }

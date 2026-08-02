@@ -18,6 +18,13 @@ public class Project {
 
     private String name;
 
+    /**
+     * 프로젝트 = 일감(티켓) 하나 모델이라 티켓번호는 프로젝트가 소유한다.
+     * ReportItem.ticket에는 저장 시점에 이 값이 복사되며(md 스키마는 항목 1줄 = 티켓 1개 유지),
+     * 과거 보고서의 티켓번호는 그때 복사된 값 그대로 남는다.
+     */
+    private String ticket;
+
     /** "종료" 버튼 자리 확보용 플래그. 종료 시 실제 동작(집계/조회 반영 방식)은 아직 미정. */
     private boolean active = true;
 
@@ -38,6 +45,14 @@ public class Project {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getTicket() {
+        return ticket;
+    }
+
+    public void setTicket(String ticket) {
+        this.ticket = ticket;
     }
 
     public boolean isActive() {

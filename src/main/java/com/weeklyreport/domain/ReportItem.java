@@ -69,8 +69,14 @@ public class ReportItem {
 
     private boolean carriedOver = false;
 
-    /** vacation 그룹 전용 날짜. */
+    /** vacation 그룹 전용 날짜. 기간 휴가면 시작일. */
     private LocalDate date;
+
+    /**
+     * vacation 그룹 전용 종료일. null이면 하루짜리 휴가.
+     * 기간이어도 항목을 날짜별로 쪼개지 않고 한 항목으로 두며, hours는 기간 전체 합산치다.
+     */
+    private LocalDate endDate;
 
     private int sortOrder;
 
@@ -137,6 +143,21 @@ public class ReportItem {
 
     public BigDecimal getHours() {
         return hours;
+    }
+
+    /**
+     * 입력칸에 넣을 시간 표기. DB에서 돌아온 BigDecimal은 scale이 붙어 "8.00"처럼 보이는데
+     * 칸이 좁아 잘리므로 의미 없는 뒷자리 0을 떼어 "8"/"0.5" 형태로 만든다.
+     */
+    public String hoursDisplay() {
+        if (hours == null) {
+            return "";
+        }
+        BigDecimal stripped = hours.stripTrailingZeros();
+        if (stripped.scale() < 0) {
+            stripped = stripped.setScale(0);
+        }
+        return stripped.toPlainString();
     }
 
     public void setHours(BigDecimal hours) {
@@ -212,12 +233,39 @@ public class ReportItem {
         this.date = date;
     }
 
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    /** 종료일이 있으면 기간 휴가로 본다(화면의 하루/기간 토글 상태이기도 하다). */
+    public boolean isPeriodVacation() {
+        return endDate != null;
+    }
+
     public int getSortOrder() {
         return sortOrder;
     }
 
     public void setSortOrder(int sortOrder) {
         this.sortOrder = sortOrder;
+    }
+
+    /**
+     * md 본문/화면에 쓸 제목. 프로젝트 그룹은 세부 항목 제목이 비어 있으면 프로젝트명으로 대체한다
+     * ("프로젝트 = 일감 하나" 구조에서 세부 항목이 하나뿐이면 제목을 따로 안 적는 경우가 많음).
+     */
+    public String displayTitle() {
+        if (title != null && !title.isBlank()) {
+            return title;
+        }
+        if (group == Group.PROJECT && project != null) {
+            return project.getName();
+        }
+        return title;
     }
 
     /** 이월 대상 여부: project/dev 그룹이면서 완료율이 100 미만. */

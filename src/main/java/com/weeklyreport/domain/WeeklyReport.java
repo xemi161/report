@@ -83,6 +83,18 @@ public class WeeklyReport {
         return totalHours;
     }
 
+    /** 화면 표기용 총 시간. "46.00h"가 아니라 "46h"로 보이도록 뒷자리 0을 뗀다. */
+    public String totalHoursDisplay() {
+        if (totalHours == null) {
+            return "0";
+        }
+        BigDecimal stripped = totalHours.stripTrailingZeros();
+        if (stripped.scale() < 0) {
+            stripped = stripped.setScale(0);
+        }
+        return stripped.toPlainString();
+    }
+
     public void setTotalHours(BigDecimal totalHours) {
         this.totalHours = totalHours;
     }

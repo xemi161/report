@@ -35,7 +35,7 @@ public class OnboardingController {
         }
         AppSettings settings = new AppSettings(form.getName().trim(), form.getRole().trim(), form.getTicketPrefix().trim());
         appSettingsRepository.save(settings);
-        return "redirect:/dashboard";
+        return "redirect:/entry";
     }
 
     private boolean isBlank(String value) {

@@ -25,6 +25,8 @@ public interface WeeklyReportRepository extends JpaRepository<WeeklyReport, Long
 
     List<WeeklyReport> findByStatusOrderByWeekStartDesc(ReportStatus status);
 
+    long countByStatus(ReportStatus status);
+
     List<WeeklyReport> findTop4ByStatusOrderByWeekStartDesc(ReportStatus status);
 
     List<WeeklyReport> findTop3ByStatusOrderByWeekStartDesc(ReportStatus status);

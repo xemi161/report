@@ -102,6 +102,45 @@ class MdExportServiceTest {
 
         JsonNode vacationItem = root.get("items").get(3);
         assertThat(vacationItem.get("date").asText()).isEqualTo("2026-08-01");
+        assertThat(vacationItem.get("endDate").isNull()).isTrue();
+    }
+
+    @Test
+    void 기간_휴가는_시작일과_종료일을_함께_표기한다() throws Exception {
+        AppSettings settings = new AppSettings("정준호", "파트원", "NHNKCP-개발1팀");
+        WeeklyReport report = new WeeklyReport("8월 1주", LocalDate.of(2026, 7, 31), LocalDate.of(2026, 8, 6));
+
+        ReportItem vacation = ReportItem.forGroup(Group.VACATION);
+        vacation.setDate(LocalDate.of(2026, 8, 5));
+        vacation.setEndDate(LocalDate.of(2026, 8, 6));
+        vacation.setHours(BigDecimal.valueOf(16));
+        report.addItem(vacation);
+
+        String md = service.export(settings, report);
+
+        assertThat(md).contains("- 2026-08-05 ~ 2026-08-06 — 16h");
+
+        String json = md.substring(md.indexOf("<!--DATA\n") + "<!--DATA\n".length(), md.indexOf("\nDATA-->"));
+        JsonNode item = new ObjectMapper().readTree(json).get("items").get(0);
+        assertThat(item.get("date").asText()).isEqualTo("2026-08-05");
+        assertThat(item.get("endDate").asText()).isEqualTo("2026-08-06");
+    }
+
+    @Test
+    void 프로젝트_세부항목의_제목이_비면_프로젝트명으로_대체된다() {
+        AppSettings settings = new AppSettings("정준호", "파트원", "NHNKCP-개발1팀");
+        WeeklyReport report = new WeeklyReport("8월 1주", LocalDate.of(2026, 7, 31), LocalDate.of(2026, 8, 6));
+
+        ReportItem item = ReportItem.forGroup(Group.PROJECT);
+        item.setProject(new Project("GTPP"));
+        item.setTicket("NHNKCP-개발1팀/23");
+        item.setPhase(Phase.DEVELOPMENT);
+        item.setHours(BigDecimal.valueOf(8));
+        item.setCompletion(60);
+        report.addItem(item);
+
+        assertThat(service.export(settings, report))
+                .contains("- NHNKCP-개발1팀/23 : GTPP [개발] — 8h · 60%");
     }
 
     @Test

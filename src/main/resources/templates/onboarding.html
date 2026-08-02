@@ -1,17 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8"/>
-    <title>시작하기 · 주간업무보고</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}"/>
-</head>
+<head th:replace="~{fragments :: head('시작하기')}"></head>
 <body>
-<main class="container">
-    <div class="card onboarding-form">
+<div class="onboarding-wrap">
+    <div class="card">
         <h1>처음이시군요 👋</h1>
-        <p style="color: var(--muted);">이름과 직책, 티켓번호 접두사를 입력하면 다음부터는 이 화면이 생략됩니다.</p>
+        <p class="lead">이름과 직책, 티켓번호 접두사를 입력하면 다음부터는 이 화면이 생략됩니다.</p>
 
-        <p th:if="${error}" class="field-errors" th:text="${error}">에러</p>
+        <div class="error-banner" th:if="${error}" th:text="${error}">에러</div>
 
         <form th:action="@{/onboarding}" th:object="${form}" method="post">
             <label for="name">이름</label>
@@ -23,9 +19,9 @@
             <label for="ticketPrefix">티켓번호 접두사</label>
             <input type="text" id="ticketPrefix" th:field="*{ticketPrefix}" placeholder="예: NHNKCP-개발1팀"/>
 
-            <button type="submit" class="btn" style="margin-top: 20px; width: 100%;">시작하기</button>
+            <button type="submit" class="btn" style="margin-top:22px; width:100%;">시작하기</button>
         </form>
     </div>
-</main>
+</div>
 </body>
 </html>

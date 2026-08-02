@@ -21,6 +21,7 @@ public class ItemForm {
     private LocalDate deployDate;
     private String note;
     private LocalDate date;
+    private LocalDate endDate;
 
     public Long getId() {
         return id;
@@ -140,5 +141,13 @@ public class ItemForm {
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
     }
 }

@@ -2,102 +2,180 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- project/dev 항목 한 줄: 인라인 편집 + 일정/비고 토글 + 삭제 -->
-<div th:fragment="itemRow(item, showMoveAction)" class="ledger-row" style="display:block;">
-    <span class="badge" th:if="${item.carriedOver}">이월</span>
-    <form th:action="@{'/entry/items/' + ${item.id}}" method="post" class="form-inline" style="border-bottom:none; padding-bottom:0;">
-        <input type="text" name="ticket" th:value="${item.ticket}" placeholder="티켓번호" style="width:150px;"/>
-        <input type="text" name="title" th:value="${item.title}" class="title" placeholder="업무명" required/>
-        <select name="phase">
-            <option value="">-</option>
-            <option value="분석/설계" th:selected="${item.phase != null and item.phase.name() == 'ANALYSIS_DESIGN'}">분석/설계</option>
-            <option value="개발" th:selected="${item.phase != null and item.phase.name() == 'DEVELOPMENT'}">개발</option>
-            <option value="테스트" th:selected="${item.phase != null and item.phase.name() == 'TEST'}">테스트</option>
-        </select>
-        <input type="number" step="0.5" name="hours" th:value="${item.hours}" placeholder="시간" style="width:70px;"/>
-        <span>h ·</span>
-        <input type="number" name="completion" th:value="${item.completion}" placeholder="완료율" min="0" max="100" style="width:70px;" required/>
-        <span>%</span>
-        <input type="number" name="days" th:value="${item.days}" placeholder="일수(기본1)" style="width:90px;"/>
-        <button type="submit" class="btn small">저장</button>
+<!--
+  htmx 규약 (이 파일 전체 공통)
+  - 구조가 바뀌는 동작(추가/삭제/토글)은 #writeView 전체를 다시 받아 갈아끼운다.
+    카드별 건수·통계·빈 상태까지 한 번에 맞아떨어져서 프래그먼트를 잘게 쪼개는 것보다 안전하다.
+  - 인라인 필드 수정은 hx-swap="none" — 화면을 다시 그리면 입력 포커스가 날아가므로 저장만 한다.
+    (그래서 완료율 100% "완료" 배지는 app.js가 클라이언트에서 즉시 반영한다.)
+  - week는 전부 쿼리스트링으로 넘긴다. 버튼이 폼 안에 있든 밖에 있든 항상 같은 방식으로 전달된다.
+-->
 
-        <details style="flex-basis:100%; margin-top:6px;">
-            <summary style="cursor:pointer; color: var(--muted); font-size:0.85rem;">📅 일정 · 비고</summary>
-            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
-                <label style="font-size:0.8rem;">개발완료일
-                    <input type="date" name="devDoneDate" th:value="${item.devDoneDate}"/>
-                </label>
-                <label style="font-size:0.8rem;">테스트예정일
-                    <input type="date" name="testDate" th:value="${item.testDate}"/>
-                </label>
-                <label style="font-size:0.8rem;">배포예정일
-                    <input type="date" name="deployDate" th:value="${item.deployDate}"/>
-                </label>
-                <input type="text" name="note" th:value="${item.note}" placeholder="비고" style="flex:1; min-width:200px;"/>
-            </div>
-        </details>
-    </form>
+<!-- hx-swap="none" 응답용 빈 프래그먼트 -->
+<th:block th:fragment="noop"></th:block>
 
-    <div style="display:flex; gap:6px; margin-top:6px;">
-        <form th:action="@{'/entry/items/' + ${item.id} + '/delete'}" method="post" class="plain">
-            <button type="submit" class="icon-btn" title="삭제">🗑</button>
-        </form>
-        <form th:if="${showMoveAction}" th:action="@{'/entry/items/' + ${item.id} + '/move-to-project'}" method="post" class="plain" style="display:flex; gap:4px; align-items:center;">
-            <select name="projectId" style="font-size:0.8rem;">
-                <option value="">- 기존 프로젝트 -</option>
-                <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"></option>
-            </select>
-            <span style="font-size:0.8rem; color:var(--muted);">또는</span>
-            <input type="text" name="newProjectName" placeholder="새 프로젝트명" style="width:120px; font-size:0.8rem;"/>
-            <button type="submit" class="icon-btn" title="프로젝트로 이동">📁 이동</button>
-        </form>
+<!-- 구분(분석/설계·개발·테스트) 셀렉트 -->
+<select th:fragment="phaseSelect(item)" class="phase-select" name="phase">
+    <option value="">-</option>
+    <option value="분석/설계" th:selected="${item.phase != null and item.phase.name() == 'ANALYSIS_DESIGN'}">분석/설계</option>
+    <option value="개발" th:selected="${item.phase != null and item.phase.name() == 'DEVELOPMENT'}">개발</option>
+    <option value="테스트" th:selected="${item.phase != null and item.phase.name() == 'TEST'}">테스트</option>
+</select>
+
+<!-- 항목이 있을 때만 보이는 컬럼 헤더 -->
+<div th:fragment="subitemHeader" class="row-head">
+    <span class="title-input">세부 업무명</span>
+    <span class="phase-select">구분</span>
+    <span class="hours-input" style="text-align:left;">투입시간</span>
+    <span class="days-input" style="text-align:left; width:auto;">일수</span>
+    <span>진행률</span>
+</div>
+
+<div th:fragment="devHeader" class="row-head">
+    <span class="ticket">일감번호</span>
+    <span class="title-input">제목</span>
+    <span class="phase-select">구분</span>
+    <span class="hours-input" style="text-align:left;">투입시간</span>
+    <span class="days-input" style="text-align:left; width:auto;">일수</span>
+    <span>진행률</span>
+</div>
+
+<!-- 일정·비고 상세 패널 (project/dev 공통) -->
+<div th:fragment="scheduleDetail(item, detailId)" class="row-detail" th:id="${detailId}">
+    <label class="inline">개발완료일<input type="date" name="devDoneDate" th:value="${item.devDoneDate}"/></label>
+    <label class="inline">테스트예정일<input type="date" name="testDate" th:value="${item.testDate}"/></label>
+    <label class="inline">배포예정일<input type="date" name="deployDate" th:value="${item.deployDate}"/></label>
+    <label class="note-field">비고<input type="text" name="note" th:value="${item.note}" placeholder="일정 변경 사유 등"/></label>
+</div>
+
+<!-- 삭제(휴지통) 버튼 — 어느 행에서든 같은 모양/동작 -->
+<button th:fragment="deleteItemBtn(item, week)" type="button" class="icon-btn" title="삭제"
+        th:hx-post="@{'/entry/items/' + ${item.id} + '/delete'(week=${week})}"
+        hx-target="#writeView" hx-swap="outerHTML">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4.5 4.5l.6 8.4a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-8.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
+
+<!-- 일정·비고 패널 여닫기 (순수 화면 동작이라 app.js가 처리) -->
+<button th:fragment="detailToggleBtn(item)" type="button" class="icon-btn chevron"
+        th:attr="data-detail-toggle='d' + ${item.id}" title="일정·비고">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+</button>
+
+<!-- 시간 · 일수 · 진행률 (project/dev 공통 꼬리) -->
+<th:block th:fragment="effortFields(item)">
+    <span class="unit">시간</span>
+    <input class="hours-input tabular" type="number" step="0.5" name="hours" th:value="${item.hoursDisplay()}"/>
+    <span class="unit">·</span>
+    <input class="days-input tabular" type="number" step="1" min="1" name="days" th:value="${item.days}"
+           placeholder="1" title="투입일수 (비우면 1일)"/>
+    <span class="unit">일</span>
+    <div class="pct-wrap">
+        <input class="completion-input tabular" type="number" min="0" max="100" name="completion"
+               th:value="${item.completion}"/>
+        <span class="unit" style="margin:0;">%</span>
     </div>
-</div>
+    <span class="badge carry" th:if="${item.carriedOver}">이월</span>
+    <span class="badge done" th:if="${item.completion != null and item.completion == 100}">완료</span>
+</th:block>
 
-<!-- project/dev 항목 신규 추가 폼 -->
-<div th:fragment="addItemForm(group, projectId)" class="form-inline" style="border-bottom:none;">
-    <form th:action="@{/entry/items}" method="post" class="form-inline" style="border-bottom:none; width:100%;">
-        <input type="hidden" name="group" th:value="${group}"/>
-        <input type="hidden" name="projectId" th:value="${projectId}" th:if="${projectId != null}"/>
-        <input type="text" name="ticket" placeholder="티켓번호" style="width:150px;"/>
-        <input type="text" name="title" class="title" placeholder="업무명 추가" required/>
-        <select name="phase">
-            <option value="">-</option>
-            <option value="분석/설계">분석/설계</option>
-            <option value="개발">개발</option>
-            <option value="테스트">테스트</option>
-        </select>
-        <input type="number" step="0.5" name="hours" placeholder="시간" style="width:70px;"/>
-        <input type="number" name="completion" placeholder="완료율" min="0" max="100" style="width:70px;" required/>
-        <input type="number" name="days" placeholder="일수" style="width:80px;"/>
-        <button type="submit" class="btn small secondary">+ 추가</button>
-    </form>
-</div>
-
-<!-- 기타/휴가 항목 한 줄 -->
-<div th:fragment="etcVacationRow(item, group)" class="ledger-row">
-    <form th:action="@{'/entry/items/' + ${item.id}}" method="post" class="form-inline" style="border-bottom:none; flex:1;">
-        <input type="hidden" name="group" th:value="${group}"/>
-        <input type="text" name="title" th:value="${item.title}" class="title" placeholder="업무명" th:if="${group == 'ETC'}"/>
-        <input type="date" name="date" th:value="${item.date}" th:if="${group == 'VACATION'}"/>
-        <input type="number" step="0.5" name="hours" th:value="${item.hours}" placeholder="시간" style="width:70px;"/>
-        <span>h</span>
-        <button type="submit" class="btn small">저장</button>
-    </form>
-    <form th:action="@{'/entry/items/' + ${item.id} + '/delete'}" method="post" class="plain">
-        <button type="submit" class="icon-btn" title="삭제">🗑</button>
+<!--
+  프로젝트 카드 안의 세부 항목 한 줄.
+  티켓번호는 카드 헤더(=일감)에만 있고 여기엔 없다. projectId를 같이 보내야
+  서버가 어느 프로젝트 항목인지 알 수 있다.
+-->
+<div th:fragment="projectSubitemRow(item, week, projectId)" class="row">
+    <form class="row-main"
+          th:hx-post="@{'/entry/items/' + ${item.id}(week=${week})}"
+          hx-trigger="change" hx-swap="none">
+        <input type="hidden" name="projectId" th:value="${projectId}"/>
+        <input class="title-input" type="text" name="title" th:value="${item.title}"
+               placeholder="세부 업무명 (예: 로그인 기능)"/>
+        <th:block th:replace="~{fragments-entry :: phaseSelect(${item})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: effortFields(${item})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: detailToggleBtn(${item})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: deleteItemBtn(${item}, ${week})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: scheduleDetail(${item}, 'd' + ${item.id})}"></th:block>
     </form>
 </div>
 
-<!-- 기타/휴가 항목 신규 추가 폼 -->
-<div th:fragment="addEtcVacationForm(group)" class="form-inline" style="border-bottom:none;">
-    <form th:action="@{/entry/items}" method="post" class="form-inline" style="border-bottom:none; width:100%;">
-        <input type="hidden" name="group" th:value="${group}"/>
-        <input type="text" name="title" class="title" placeholder="업무명" th:if="${group == 'ETC'}"/>
-        <input type="date" name="date" th:if="${group == 'VACATION'}"/>
-        <input type="number" step="0.5" name="hours" placeholder="시간" style="width:70px;"/>
-        <button type="submit" class="btn small secondary">+ 추가</button>
+<!-- 개발 그룹 항목 한 줄. 프로젝트와 달리 티켓번호를 행에서 직접 입력한다. -->
+<div th:fragment="devItemRow(item, week)" class="row">
+    <form class="row-main"
+          th:hx-post="@{'/entry/items/' + ${item.id}(week=${week})}"
+          hx-trigger="change" hx-swap="none">
+        <input class="ticket" type="text" name="ticket" th:value="${item.ticket}" placeholder="티켓번호"/>
+        <input class="title-input" type="text" name="title" th:value="${item.title}" placeholder="업무명"/>
+        <th:block th:replace="~{fragments-entry :: phaseSelect(${item})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: effortFields(${item})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: detailToggleBtn(${item})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: deleteItemBtn(${item}, ${week})}"></th:block>
+        <th:block th:replace="~{fragments-entry :: scheduleDetail(${item}, 'd' + ${item.id})}"></th:block>
     </form>
+</div>
+
+<!-- 기타 항목 -->
+<div th:fragment="etcRow(item, week)" class="row">
+    <form class="simple-row"
+          th:hx-post="@{'/entry/items/' + ${item.id}(week=${week})}"
+          hx-trigger="change" hx-swap="none">
+        <input class="title-input" type="text" name="title" th:value="${item.title}" placeholder="업무명"/>
+        <span class="unit">시간</span>
+        <input class="hours-input tabular" type="number" step="0.5" name="hours" th:value="${item.hoursDisplay()}"/>
+        <th:block th:replace="~{fragments-entry :: deleteItemBtn(${item}, ${week})}"></th:block>
+    </form>
+</div>
+
+<!--
+  휴가 항목. 종료일이 있으면 기간 휴가로 보고 "시작일 ~ 종료일"을 입력받는다.
+  하루/기간 전환은 저장된 값(endDate)이 바뀌는 동작이라 서버로 보낸다.
+-->
+<div th:fragment="vacationRow(item, week)" class="row">
+    <form class="simple-row"
+          th:hx-post="@{'/entry/items/' + ${item.id}(week=${week})}"
+          hx-trigger="change" hx-swap="none">
+        <input type="date" name="date" th:value="${item.date}"/>
+        <th:block th:if="${item.periodVacation}">
+            <span class="unit">~</span>
+            <input type="date" name="endDate" th:value="${item.endDate}"/>
+        </th:block>
+        <button type="button" class="mode-toggle"
+                th:text="${item.periodVacation} ? '하루로' : '기간으로'"
+                th:hx-post="@{'/entry/items/' + ${item.id} + '/vacation-period'(week=${week})}"
+                hx-target="#writeView" hx-swap="outerHTML">기간으로</button>
+        <span class="unit">시간</span>
+        <input class="hours-input tabular" type="number" step="0.5" name="hours" th:value="${item.hoursDisplay()}"/>
+        <span style="margin-left:auto;"></span>
+        <th:block th:replace="~{fragments-entry :: deleteItemBtn(${item}, ${week})}"></th:block>
+    </form>
+</div>
+
+<!--
+  제출 전 미리보기 모달. 필수값이 빠져 있으면 목록을 보여주고 내보내기를 막는다.
+  "md로 내보내기"만 htmx가 아닌 일반 폼 전송 — 응답이 첨부파일이라 브라우저가 직접 받아야 한다.
+-->
+<div th:fragment="previewModal" class="modal-backdrop open" id="previewModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+        <div class="modal-head">
+            <h3 id="previewTitle">제출 전 미리보기</h3>
+            <button type="button" class="icon-btn" data-close-modal aria-label="닫기">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-errors" th:if="${!#lists.isEmpty(errors)}">
+                아직 채워지지 않은 필수 항목이 있어요.
+                <ul><li th:each="e : ${errors}" th:text="${e}">에러</li></ul>
+            </div>
+            <pre th:text="${mdText}">md 내용</pre>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn outline" data-close-modal>수정하기</button>
+            <form th:action="@{/entry/submit}" method="post">
+                <input type="hidden" name="week" th:value="${week}"/>
+                <button type="submit" class="btn" th:disabled="${!#lists.isEmpty(errors)}">md로 내보내기</button>
+            </form>
+        </div>
+    </div>
 </div>
 
 </body>
