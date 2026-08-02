@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>대시보드 · 주간업무보고</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div th:replace="~{fragments :: nav(${activeMenu})}"></div>
+<main class="container">
+    <h1 th:text="${settings.name} + '님, 안녕하세요'">인사말</h1>
+    <p style="color: var(--muted); margin-top: -8px;" th:text="${'이번 주: ' + weekLabel + ' (' + weekStart + ' ~ ' + weekEnd + ')'}">이번 주</p>
+
+    <div class="banner" th:if="${needsReport}">
+        <span>이번 주(<span th:text="${weekLabel}">주차</span>) 보고서를 아직 작성하지 않았습니다.</span>
+        <a class="btn" th:href="@{/entry}">보고 작성</a>
+    </div>
+
+    <div class="card card-row">
+        <div class="stat">
+            <span class="label">최근 4주 평균 맨위크</span>
+            <span class="value" th:text="${avgManWeek}">0.00</span>
+        </div>
+        <div class="stat">
+            <span class="label">진행중 프로젝트 수</span>
+            <span class="value" th:text="${activeProjectCount}">0</span>
+        </div>
+    </div>
+
+    <h2 class="section-title">진행중인 프로젝트</h2>
+    <div class="card">
+        <p class="empty-hint" th:if="${#lists.isEmpty(projectProgresses)}">아직 등록된 프로젝트가 없습니다.</p>
+        <div th:each="p : ${projectProgresses}" style="margin-bottom: 14px;">
+            <div style="display:flex; justify-content: space-between; margin-bottom: 4px;">
+                <span th:text="${p.name}">프로젝트명</span>
+                <span class="nums" th:text="${p.completion} + '%'">0%</span>
+            </div>
+            <div class="progress"><span th:style="'width:' + ${p.completion} + '%'"></span></div>
+        </div>
+    </div>
+
+    <h2 class="section-title">최근 이력</h2>
+    <div class="card">
+        <p class="empty-hint" th:if="${#lists.isEmpty(recentHistory)}">아직 제출된 보고서가 없습니다.</p>
+        <div class="ledger-row" th:each="r : ${recentHistory}">
+            <div class="main" th:text="${r.weekLabel}">주차</div>
+            <div class="nums" th:text="${r.totalHours} + 'h · ' + ${r.totalManWeek} + ' 맨위크'">합계</div>
+        </div>
+        <p th:if="${!#lists.isEmpty(recentHistory)}" style="margin-top: 10px;">
+            <a th:href="@{/history}">전체 이력 보기 →</a>
+        </p>
+    </div>
+</main>
+</body>
+</html>

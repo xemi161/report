@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- project/dev 항목 한 줄: 인라인 편집 + 일정/비고 토글 + 삭제 -->
+<div th:fragment="itemRow(item, showMoveAction)" class="ledger-row" style="display:block;">
+    <span class="badge" th:if="${item.carriedOver}">이월</span>
+    <form th:action="@{'/entry/items/' + ${item.id}}" method="post" class="form-inline" style="border-bottom:none; padding-bottom:0;">
+        <input type="text" name="ticket" th:value="${item.ticket}" placeholder="티켓번호" style="width:150px;"/>
+        <input type="text" name="title" th:value="${item.title}" class="title" placeholder="업무명" required/>
+        <select name="phase">
+            <option value="">-</option>
+            <option value="분석/설계" th:selected="${item.phase != null and item.phase.name() == 'ANALYSIS_DESIGN'}">분석/설계</option>
+            <option value="개발" th:selected="${item.phase != null and item.phase.name() == 'DEVELOPMENT'}">개발</option>
+            <option value="테스트" th:selected="${item.phase != null and item.phase.name() == 'TEST'}">테스트</option>
+        </select>
+        <input type="number" step="0.5" name="hours" th:value="${item.hours}" placeholder="시간" style="width:70px;"/>
+        <span>h ·</span>
+        <input type="number" name="completion" th:value="${item.completion}" placeholder="완료율" min="0" max="100" style="width:70px;" required/>
+        <span>%</span>
+        <input type="number" name="days" th:value="${item.days}" placeholder="일수(기본1)" style="width:90px;"/>
+        <button type="submit" class="btn small">저장</button>
+
+        <details style="flex-basis:100%; margin-top:6px;">
+            <summary style="cursor:pointer; color: var(--muted); font-size:0.85rem;">📅 일정 · 비고</summary>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                <label style="font-size:0.8rem;">개발완료일
+                    <input type="date" name="devDoneDate" th:value="${item.devDoneDate}"/>
+                </label>
+                <label style="font-size:0.8rem;">테스트예정일
+                    <input type="date" name="testDate" th:value="${item.testDate}"/>
+                </label>
+                <label style="font-size:0.8rem;">배포예정일
+                    <input type="date" name="deployDate" th:value="${item.deployDate}"/>
+                </label>
+                <input type="text" name="note" th:value="${item.note}" placeholder="비고" style="flex:1; min-width:200px;"/>
+            </div>
+        </details>
+    </form>
+
+    <div style="display:flex; gap:6px; margin-top:6px;">
+        <form th:action="@{'/entry/items/' + ${item.id} + '/delete'}" method="post" class="plain">
+            <button type="submit" class="icon-btn" title="삭제">🗑</button>
+        </form>
+        <form th:if="${showMoveAction}" th:action="@{'/entry/items/' + ${item.id} + '/move-to-project'}" method="post" class="plain" style="display:flex; gap:4px; align-items:center;">
+            <select name="projectId" style="font-size:0.8rem;">
+                <option value="">- 기존 프로젝트 -</option>
+                <option th:each="p : ${projects}" th:value="${p.id}" th:text="${p.name}"></option>
+            </select>
+            <span style="font-size:0.8rem; color:var(--muted);">또는</span>
+            <input type="text" name="newProjectName" placeholder="새 프로젝트명" style="width:120px; font-size:0.8rem;"/>
+            <button type="submit" class="icon-btn" title="프로젝트로 이동">📁 이동</button>
+        </form>
+    </div>
+</div>
+
+<!-- project/dev 항목 신규 추가 폼 -->
+<div th:fragment="addItemForm(group, projectId)" class="form-inline" style="border-bottom:none;">
+    <form th:action="@{/entry/items}" method="post" class="form-inline" style="border-bottom:none; width:100%;">
+        <input type="hidden" name="group" th:value="${group}"/>
+        <input type="hidden" name="projectId" th:value="${projectId}" th:if="${projectId != null}"/>
+        <input type="text" name="ticket" placeholder="티켓번호" style="width:150px;"/>
+        <input type="text" name="title" class="title" placeholder="업무명 추가" required/>
+        <select name="phase">
+            <option value="">-</option>
+            <option value="분석/설계">분석/설계</option>
+            <option value="개발">개발</option>
+            <option value="테스트">테스트</option>
+        </select>
+        <input type="number" step="0.5" name="hours" placeholder="시간" style="width:70px;"/>
+        <input type="number" name="completion" placeholder="완료율" min="0" max="100" style="width:70px;" required/>
+        <input type="number" name="days" placeholder="일수" style="width:80px;"/>
+        <button type="submit" class="btn small secondary">+ 추가</button>
+    </form>
+</div>
+
+<!-- 기타/휴가 항목 한 줄 -->
+<div th:fragment="etcVacationRow(item, group)" class="ledger-row">
+    <form th:action="@{'/entry/items/' + ${item.id}}" method="post" class="form-inline" style="border-bottom:none; flex:1;">
+        <input type="hidden" name="group" th:value="${group}"/>
+        <input type="text" name="title" th:value="${item.title}" class="title" placeholder="업무명" th:if="${group == 'ETC'}"/>
+        <input type="date" name="date" th:value="${item.date}" th:if="${group == 'VACATION'}"/>
+        <input type="number" step="0.5" name="hours" th:value="${item.hours}" placeholder="시간" style="width:70px;"/>
+        <span>h</span>
+        <button type="submit" class="btn small">저장</button>
+    </form>
+    <form th:action="@{'/entry/items/' + ${item.id} + '/delete'}" method="post" class="plain">
+        <button type="submit" class="icon-btn" title="삭제">🗑</button>
+    </form>
+</div>
+
+<!-- 기타/휴가 항목 신규 추가 폼 -->
+<div th:fragment="addEtcVacationForm(group)" class="form-inline" style="border-bottom:none;">
+    <form th:action="@{/entry/items}" method="post" class="form-inline" style="border-bottom:none; width:100%;">
+        <input type="hidden" name="group" th:value="${group}"/>
+        <input type="text" name="title" class="title" placeholder="업무명" th:if="${group == 'ETC'}"/>
+        <input type="date" name="date" th:if="${group == 'VACATION'}"/>
+        <input type="number" step="0.5" name="hours" placeholder="시간" style="width:70px;"/>
+        <button type="submit" class="btn small secondary">+ 추가</button>
+    </form>
+</div>
+
+</body>
+</html>

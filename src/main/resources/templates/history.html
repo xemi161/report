@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>이력 · 주간업무보고</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div th:replace="~{fragments :: nav(${activeMenu})}"></div>
+<main class="container">
+    <h1>이력</h1>
+    <p class="empty-hint" th:if="${#lists.isEmpty(reports)}">아직 제출된 보고서가 없습니다.</p>
+
+    <table class="history" th:if="${!#lists.isEmpty(reports)}">
+        <thead>
+        <tr>
+            <th>주차</th>
+            <th>기간</th>
+            <th>총 시간</th>
+            <th>맨위크</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="r : ${reports}" th:classappend="${r.totalManWeek.compareTo(lowThreshold) < 0} ? 'low-manweek'">
+            <td><a th:href="@{'/history/' + ${r.id}}" th:text="${r.weekLabel}">주차</a></td>
+            <td th:text="${r.weekStart} + ' ~ ' + ${r.weekEnd}">기간</td>
+            <td th:text="${r.totalHours} + 'h'">시간</td>
+            <td th:text="${r.totalManWeek}">맨위크</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>

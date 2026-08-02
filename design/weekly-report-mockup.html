@@ -1,0 +1,1049 @@
+<title>주간업무보고 · 디자인 목업</title>
+<style>
+  :root{
+    --bg: oklch(98% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --surface-sunken: oklch(97% 0.006 250);
+    --border: oklch(90% 0.012 260);
+    --border-soft: oklch(94% 0.008 260);
+    --text: oklch(22% 0.02 260);
+    --text-muted: oklch(48% 0.02 260);
+    --text-faint: oklch(65% 0.012 260);
+    --accent: oklch(55% 0.16 260);
+    --accent-hover: oklch(48% 0.16 260);
+    --accent-soft: oklch(95% 0.03 260);
+    --accent-soft-fg: oklch(45% 0.16 260);
+    --warn-bg: oklch(94% 0.08 80);
+    --warn-fg: oklch(45% 0.14 70);
+    --danger-bg: oklch(93% 0.09 25);
+    --danger-fg: oklch(48% 0.17 25);
+    --danger-border: oklch(80% 0.12 25);
+    --good-bg: oklch(93% 0.06 150);
+    --good-fg: oklch(42% 0.13 150);
+    --shadow: 0 1px 2px oklch(0% 0 0 / 0.04);
+    --shadow-lg: 0 12px 32px oklch(20% 0.02 260 / 0.16);
+  }
+  /* 다크모드보다 레퍼런스 톤(라이트) 유지가 우선이라는 피드백에 따라
+     의도적으로 단일 테마로 고정 — OS/뷰어 다크 설정과 무관하게 항상 이 톤을 보여준다. */
+  :root[data-theme="dark"], :root[data-theme="light"]{
+    --bg: oklch(98% 0.005 250); --surface: oklch(100% 0 0); --surface-sunken: oklch(97% 0.006 250);
+    --border: oklch(90% 0.012 260); --border-soft: oklch(94% 0.008 260);
+    --text: oklch(22% 0.02 260); --text-muted: oklch(48% 0.02 260); --text-faint: oklch(65% 0.012 260);
+    --accent: oklch(55% 0.16 260); --accent-hover: oklch(48% 0.16 260);
+    --accent-soft: oklch(95% 0.03 260); --accent-soft-fg: oklch(45% 0.16 260);
+    --warn-bg: oklch(94% 0.08 80); --warn-fg: oklch(45% 0.14 70);
+    --danger-bg: oklch(93% 0.09 25); --danger-fg: oklch(48% 0.17 25); --danger-border: oklch(80% 0.12 25);
+    --good-bg: oklch(93% 0.06 150); --good-fg: oklch(42% 0.13 150);
+    --shadow: 0 1px 2px oklch(0% 0 0 / 0.04); --shadow-lg: 0 12px 32px oklch(20% 0.02 260 / 0.16);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Helvetica,Arial,sans-serif;
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+    min-height:100vh; overflow-x:hidden;
+  }
+  button,input,select,textarea{font:inherit;color:inherit;}
+  input,select{background:transparent;}
+  ::placeholder{color:var(--text-faint);}
+  .tabular{font-variant-numeric:tabular-nums;}
+  a{color:var(--accent);}
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:20; background:var(--surface);
+    border-bottom:1px solid var(--border-soft);
+  }
+  .header-inner{
+    max-width:1120px; margin:0 auto; padding:16px 28px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:baseline; gap:9px; margin-right:auto;}
+  .brand .name{font-size:17px; font-weight:700; letter-spacing:-.01em;}
+  .brand .who{font-size:12.5px; color:var(--text-muted);}
+  .pager{display:flex; align-items:center; gap:2px;}
+  .pager button{
+    width:30px; height:30px; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color:var(--text-muted); transition:background .12s, color .12s;
+  }
+  .pager button:hover{background:var(--surface-sunken); color:var(--text);}
+  .pager button:disabled{opacity:.35; cursor:not-allowed;}
+  .pager button:focus-visible, .seg button:focus-visible, .btn:focus-visible, .ghost:focus-visible, input:focus-visible, select:focus-visible{
+    outline:2px solid var(--accent); outline-offset:1px;
+  }
+  .pager .label{font-size:13px; font-weight:600; min-width:132px; text-align:center; padding:0 4px;}
+  .pager .range{font-size:11px; color:var(--text-faint); display:block; font-weight:400; margin-top:1px;}
+  .seg{display:flex; gap:3px; background:var(--surface-sunken); padding:3px; border-radius:10px; border:1px solid var(--border-soft);}
+  .seg button{
+    padding:6px 14px; border:none; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer;
+    background:transparent; color:var(--text-muted); transition:background .12s, color .12s, box-shadow .12s;
+  }
+  .seg button.active{background:var(--surface); color:var(--text); box-shadow:var(--shadow);}
+
+  main{max-width:1120px; margin:0 auto; padding:28px 28px 100px;}
+  .view{display:none; flex-direction:column; gap:18px;}
+  .view.active{display:flex;}
+
+  /* ---------- stat row ---------- */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px;}
+  .stat{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:16px 18px;
+    display:flex; flex-direction:column; gap:5px;
+  }
+  .stat .k{font-size:12px; color:var(--text-muted);}
+  .stat .v{font-size:24px; font-weight:700;}
+  .stat .v small{font-size:13px; font-weight:600; color:var(--text-muted); margin-left:3px;}
+
+  /* ---------- cards ---------- */
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:22px 24px;}
+  .card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px;}
+  .card-title{display:flex; align-items:center; gap:9px;}
+  .card-title h2{font-size:15px; font-weight:700; margin:0;}
+  .card-title .count{
+    font-size:11.5px; font-weight:700; color:var(--accent-soft-fg); background:var(--accent-soft);
+    padding:2px 9px; border-radius:999px;
+  }
+  .name-edit{
+    border:1px solid transparent; border-radius:7px; padding:3px 7px; font-size:15px; font-weight:700;
+    background:transparent; min-width:60px;
+  }
+  .name-edit:hover{border-color:var(--border);}
+  .name-edit:focus{border-color:var(--accent); outline:none; background:var(--surface-sunken);}
+
+  /* 프로젝트 안의 일감(티켓) 블록 — 분석/설계·개발·테스트 3줄이 항상 그 밑에 딸려온다 */
+  .ticket-block{border:1px solid var(--border-soft); border-radius:11px; padding:14px 16px 4px; margin-bottom:12px; background:var(--surface-sunken);}
+  .ticket-block:last-child{margin-bottom:0;}
+  .ticket-head{display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;}
+  .ticket-head input{background:var(--surface);}
+  .ticket-head input.ticket{width:150px;}
+  .ticket-head .icon-btn{margin-left:auto;}
+  /* ticket-block 배경이 이미 sunken이라, 그 안의 입력은 hover/focus 시 surface로 대비를 줘야 보임 */
+  .ticket-block .row input:hover, .ticket-block .row select:hover,
+  .ticket-block .row input:focus, .ticket-block .row select:focus{background:var(--surface);}
+  .ticket-block .row-detail{background:var(--surface);}
+  .ticket-block .row-detail input{background:var(--surface-sunken);}
+
+  .row-head{
+    display:flex; align-items:center; gap:8px; padding:0 0 8px; margin-bottom:2px; flex-wrap:wrap;
+    border-bottom:1px solid var(--border-soft);
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);
+  }
+  .row-head > span{white-space:nowrap;}
+  .rows{display:flex; flex-direction:column;}
+  .row{border-bottom:1px solid var(--border-soft); padding:10px 0;}
+  .row:last-child{border-bottom:none;}
+  .row-main{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .row input[type=text], .row input[type=number], .row select{
+    border:1px solid transparent; border-radius:6px; padding:5px 7px; font-size:13px; transition:background .12s,border-color .12s;
+  }
+  .row input:hover, .row select:hover{background:var(--surface-sunken);}
+  .row input:focus, .row select:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+  .ticket{width:132px; color:var(--text-muted); font-size:12.5px;}
+  .title-input{flex:1; min-width:160px; font-weight:500;}
+  .phase-select{width:96px; color:var(--text-muted);}
+  .hours-input{width:56px; text-align:right;}
+  .days-input{width:40px; text-align:right;}
+  .completion-input{width:52px; text-align:right;}
+  .unit{color:var(--text-faint); font-size:12.5px; margin-right:2px;}
+  .pct-wrap{display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:999px; background:var(--surface-sunken);}
+  .badge{font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .badge.carry{background:var(--warn-bg); color:var(--warn-fg);}
+  .badge.done{background:var(--good-bg); color:var(--good-fg);}
+  .icon-btn{
+    border:none; background:transparent; color:var(--text-faint); cursor:pointer; padding:5px; border-radius:6px;
+    display:flex; align-items:center; justify-content:center; transition:background .12s,color .12s;
+  }
+  .icon-btn:hover{background:var(--danger-bg); color:var(--danger-fg);}
+  .icon-btn.chevron:hover{background:var(--surface-sunken); color:var(--text);}
+  .icon-btn.chevron svg{transition:transform .15s;}
+  .icon-btn.chevron.open svg{transform:rotate(90deg);}
+  .row-detail{display:none; flex-direction:column; gap:9px; margin-top:8px; padding:12px 14px; background:var(--surface-sunken); border-radius:9px;}
+  .row-detail.open{display:flex;}
+  .row-detail label{font-size:11.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;}
+  .row-detail label.inline{flex-direction:row; align-items:center; justify-content:space-between; gap:12px;}
+  .row-detail input{border:1px solid var(--border); border-radius:6px; padding:5px 9px; background:var(--surface);}
+  .row-detail label.inline input{width:160px;}
+  .row-detail .note-field input{width:100%;}
+
+  .simple-row{display:flex; align-items:center; gap:10px;}
+  .simple-row .title-input{flex:1;}
+
+  .ghost{
+    margin-top:12px; align-self:flex-start; border:1.5px dashed var(--border); background:transparent;
+    color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:12.5px; cursor:pointer;
+    display:flex; align-items:center; gap:6px; transition:background .12s,border-color .12s,color .12s;
+  }
+  .ghost:hover{background:var(--surface-sunken); border-color:var(--text-faint); color:var(--text);}
+
+  .btn{
+    border:none; background:var(--accent); color:oklch(100% 0 0); padding:10px 20px; border-radius:10px;
+    font-size:13.5px; font-weight:700; cursor:pointer; transition:background .12s;
+  }
+  .btn:hover{background:var(--accent-hover);}
+  .btn.outline{background:transparent; border:1px solid var(--border); color:var(--text);}
+  .btn.outline:hover{background:var(--surface-sunken);}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+
+  .submit-bar{display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:4px;}
+
+  /* ---------- empty / locked states ---------- */
+  .empty-state{
+    background:var(--surface); border:1.5px dashed var(--border); border-radius:14px;
+    padding:56px 24px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:14px;
+  }
+  .empty-state .icon{color:var(--text-faint);}
+  .empty-state h3{font-size:15px; margin:0;}
+  .empty-state p{font-size:13px; color:var(--text-muted); margin:0; max-width:320px;}
+  .empty-hint{color:var(--text-faint); font-size:12.5px; padding:12px 0;}
+
+  .locked-banner{
+    display:flex; align-items:center; gap:10px; background:var(--accent-soft); color:var(--accent-soft-fg);
+    border-radius:10px; padding:11px 16px; font-size:12.5px; font-weight:600;
+  }
+  .locked-banner svg{flex-shrink:0;}
+
+  /* ---------- history ---------- */
+  /* 히스토리 카드는 아코디언이 아니라 클릭 시 "작성" 탭의 해당 주로 이동하는 내비게이션 행 */
+  .hist-card{background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; cursor:pointer; transition:border-color .12s;}
+  .hist-card:hover{border-color:var(--text-faint);}
+  .hist-summary{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px;}
+  .hist-left{display:flex; flex-direction:column; gap:3px;}
+  .hist-left .wk{font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .hist-left .rng{font-size:12px; color:var(--text-muted);}
+  .hist-right{display:flex; align-items:center; gap:18px;}
+  .hist-metric{text-align:right;}
+  .hist-metric .n{font-size:15px; font-weight:700;}
+  .hist-metric .l{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em;}
+  .hist-metric.low .n{color:var(--danger-fg);}
+  .low-stripe{width:4px; align-self:stretch; background:var(--danger-border); border-radius:2px;}
+  .chev{flex-shrink:0; color:var(--text-faint);}
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:oklch(15% 0.02 260 / .45); display:none;
+    align-items:center; justify-content:center; z-index:50; padding:24px;
+  }
+  .modal-backdrop.open{display:flex;}
+  .modal{
+    background:var(--surface); border-radius:16px; box-shadow:var(--shadow-lg); width:100%; max-width:600px;
+    max-height:85vh; display:flex; flex-direction:column; border:1px solid var(--border);
+  }
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border-soft);}
+  .modal-head h3{margin:0; font-size:15.5px; font-weight:700;}
+  .modal-body{padding:20px 24px; overflow:auto;}
+  .modal-body pre{
+    background:var(--surface-sunken); border:1px solid var(--border-soft); border-radius:10px; padding:16px 18px;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; line-height:1.65; white-space:pre-wrap;
+    word-break:break-word; margin:0;
+  }
+  .modal-foot{display:flex; justify-content:flex-end; gap:8px; padding:16px 24px; border-top:1px solid var(--border-soft);}
+
+  .toast{
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+    background:var(--text); color:var(--bg); padding:11px 20px; border-radius:10px; font-size:13px; font-weight:600;
+    box-shadow:var(--shadow-lg); transition:opacity .18s, transform .18s; pointer-events:none; z-index:60;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  @media (max-width:640px){
+    .header-inner{padding:12px 16px;} main{padding:20px 16px 90px;}
+    .row-main{gap:6px;} .ticket{width:100px;} .card{padding:16px 16px;}
+  }
+</style>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <span class="name">주간업무보고</span>
+      <span class="who">정준호 · 파트원</span>
+    </div>
+    <div class="pager">
+      <button id="prevWeekBtn" aria-label="이전 주" title="이전 주">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="label" id="weekLabel">8월 1주<span class="range" id="weekRange">07.31(금) ~ 08.06(목)</span></div>
+      <button id="nextWeekBtn" aria-label="다음 주" title="다음 주">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="seg" role="tablist">
+      <button id="tabWriteBtn" class="active" role="tab" aria-selected="true">작성</button>
+      <button id="tabHistoryBtn" role="tab" aria-selected="false">히스토리 · <span id="histCount">3</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ===================== 작성 ===================== -->
+  <section id="writeView" class="view active"></section>
+
+  <!-- ===================== 히스토리 ===================== -->
+  <section id="historyView" class="view">
+    <div style="font-size:15px;font-weight:700;">과거 보고서</div>
+    <div id="historyList" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">제출 전 미리보기</h3>
+      <button class="icon-btn" id="modalClose" aria-label="닫기">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body"><pre id="modalPre"></pre></div>
+    <div class="modal-foot">
+      <button class="btn outline" id="modalEdit">수정하기</button>
+      <button class="btn" id="modalConfirm">md로 내보내기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const ICON_TRASH = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4.5 4.5l.6 8.4a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-8.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_CHEV = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_CAL = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+  const ICON_CHECK = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_SPARK = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+
+  let uid = 900;
+  const nextId = () => uid++;
+
+  const PHASES = ["분석/설계","개발","테스트"];
+  const LOW_MANWEEK_THRESHOLD = 0.8;
+
+  function blankItem(){
+    return { id: nextId(), ticket:"", title:"", phase:"", hours:"", days:"", completion:"", carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" };
+  }
+
+  // 프로젝트의 일감(티켓)은 티켓번호+제목이 첫 줄. 그 아래 세부 항목은 고정 3단계가 아니라
+  // 필요할 때마다 추가하며, 구분(분석/설계·개발·테스트)이 같은 항목을 여러 개 넣을 수도 있다
+  // (예: 티켓 하나에 "로그인 기능"·"2차인증 기능"처럼 개발 항목 2개).
+  function blankSubitem(){
+    return { id: nextId(), title:"", phase:"", hours:"", days:"", completion:"", carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" };
+  }
+  function blankTicket(){
+    return { id: nextId(), ticket:"", title:"", subitems: [] };
+  }
+
+  // 과거→현재→미래 순. 모든 주가(제출 여부와 무관하게) 항상 수정 가능하다는 요구사항 반영 —
+  // "제출됨"은 잠금이 아니라 상태 표시일 뿐이며, 다시 내보내기도 항상 가능.
+  const WEEKS = [
+    { status: "submitted", label: "7월 3주", range: "07.10(금) ~ 07.16(목)",
+      projects: [],
+      dev: [ { id:1, ticket:"", title:"온보딩 문서 정리", phase:"개발", hours:6, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
+      etc: [ { id:2, title:"파트 주간회의", hours:1 } ],
+      vacation: [] },
+    { status: "submitted", label: "7월 4주", range: "07.17(금) ~ 07.23(목)",
+      projects: [ { id:1, name:"GTPP", tickets:[
+        { id:11, ticket:"NHNKCP-개발1팀/23", title:"외국환 보고서 현행화", subitems:[
+          { ...blankSubitem(), phase:"분석/설계", hours:4, days:1, completion:100 },
+          { ...blankSubitem(), phase:"개발", hours:8, days:3, completion:40 }
+        ] }
+      ]} ],
+      dev: [ { id:21, ticket:"", title:"레거시 배치 점검", phase:"개발", hours:4, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
+      etc: [ { id:22, title:"파트 주간회의", hours:1 } ],
+      vacation: [ { id:23, date:"2026-07-21", hours:8 } ] },
+    { status: "submitted", label: "7월 5주", range: "07.24(금) ~ 07.30(목)",
+      projects: [ { id:1, name:"GTPP", tickets:[
+        { id:31, ticket:"NHNKCP-개발1팀/23", title:"외국환 보고서 현행화", subitems:[
+          { ...blankSubitem(), phase:"개발", hours:8, days:4, completion:55, testDate:"2026-08-03" }
+        ] }
+      ]} ],
+      dev: [
+        { id:32, ticket:"NHNKCP-개발1팀/26", title:"2차인증 프로세스 개선", phase:"분석/설계", hours:2, days:1, completion:5, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" },
+        { id:33, ticket:"", title:"사내 위키 정리", phase:"개발", hours:2, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" }
+      ],
+      etc: [ { id:34, title:"파트 주간회의", hours:1 }, { id:35, title:"신입 온보딩 지원", hours:2 } ],
+      vacation: [] },
+    { status: "draft", label: "8월 1주", range: "07.31(금) ~ 08.06(목)",
+      stats: { avgManWeek: "0.61", activeProjects: 2 },
+      projects: [
+        { id: 1, name: "GTPP", tickets: [
+          { id: 101, ticket: "NHNKCP-개발1팀/23", title: "외국환 보고서 현행화", subitems:[
+            { ...blankSubitem(), phase:"개발", hours:8, days:2, completion:60, testDate:"2026-08-10", note:"외부 연계사 일정으로 테스트 1주 연기" }
+          ] }
+        ]},
+        { id: 2, name: "2차인증 리뉴얼", tickets: [
+          { id: 102, ticket: "NHNKCP-개발1팀/40", title: "2차인증 리뉴얼", subitems:[
+            { ...blankSubitem(), title:"로그인 기능", phase:"개발", hours:4, days:1, completion:30 },
+            { ...blankSubitem(), title:"2차인증 기능", phase:"개발", hours:3, days:1, completion:10 }
+          ] }
+        ]}
+      ],
+      dev: [
+        { id: 201, ticket: "NHNKCP-개발1팀/26", title: "2차인증 프로세스 개선", phase: "분석/설계", hours: 1, days: 1, completion: 5, carriedOver: true, devDoneDate:"", testDate: "", deployDate:"", note: "" }
+      ],
+      etc: [ { id: 301, title: "파트 주간회의", hours: 1 } ],
+      vacation: [ { id: 401, date: "2026-08-01", hours: 8 } ] },
+    { status: "empty", label: "8월 2주", range: "08.07(금) ~ 08.13(목)" },
+  ];
+  let weekIdx = 3; // "8월 1주" (작성중인 이번 주)
+
+  const $ = sel => document.querySelector(sel);
+  const writeView = $("#writeView");
+  const historyList = $("#historyList");
+
+  function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+  function phaseOptions(sel){
+    return `<option value="">-</option>` + PHASES.map(p => `<option ${p===sel?"selected":""}>${p}</option>`).join("");
+  }
+
+  // 맨위크 = (시간 × 일수) / 5 / 8, 일수 생략 시 1로 간주 (docs/weekly-report-md-schema.md 기준)
+  function computeTotals(wk){
+    const withDays = i => (Number(i.hours)||0) * (Number(i.days) || 1);
+    let totalHours = 0;
+    (wk.projects||[]).forEach(p => (p.tickets||[]).forEach(t => (t.subitems||[]).forEach(i => totalHours += withDays(i))));
+    (wk.dev||[]).forEach(i => totalHours += withDays(i));
+    (wk.etc||[]).forEach(i => totalHours += Number(i.hours)||0);
+    (wk.vacation||[]).forEach(i => totalHours += Number(i.hours)||0);
+    const manWeek = totalHours / 40;
+    return { totalHours, manWeek: manWeek.toFixed(2), low: manWeek < LOW_MANWEEK_THRESHOLD };
+  }
+
+  function itemRow(item){
+    const detailId = "d" + item.id;
+    return `
+      <div class="row" data-id="${item.id}">
+        <div class="row-main">
+          <input class="ticket" type="text" value="${esc(item.ticket)}" placeholder="티켓번호" data-field="ticket">
+          <input class="title-input" type="text" value="${esc(item.title)}" placeholder="업무명" data-field="title">
+          <select class="phase-select" data-field="phase">${phaseOptions(item.phase)}</select>
+          <span class="unit">시간</span>
+          <input class="hours-input tabular" type="number" step="0.5" value="${item.hours ?? ""}" data-field="hours">
+          <span class="unit">·</span>
+          <input class="days-input tabular" type="number" step="1" min="1" placeholder="1" title="투입일수 (비우면 1일)" value="${item.days ?? ""}" data-field="days">
+          <span class="unit">일</span>
+          <div class="pct-wrap">
+            <input class="completion-input tabular" type="number" min="0" max="100" value="${item.completion ?? ""}" data-field="completion">
+            <span class="unit" style="margin:0;">%</span>
+          </div>
+          ${item.carriedOver ? '<span class="badge carry">이월</span>' : ""}
+          ${Number(item.completion) === 100 ? '<span class="badge done">완료</span>' : ""}
+          <button class="icon-btn chevron" data-toggle="${detailId}" title="일정·비고">${ICON_CAL}</button>
+          <button class="icon-btn" data-remove title="삭제">${ICON_TRASH}</button>
+        </div>
+        <div class="row-detail" id="${detailId}">
+          <label class="inline">개발완료일<input type="date" value="${esc(item.devDoneDate)}" data-field="devDoneDate"></label>
+          <label class="inline">테스트예정일<input type="date" value="${esc(item.testDate)}" data-field="testDate"></label>
+          <label class="inline">배포예정일<input type="date" value="${esc(item.deployDate)}" data-field="deployDate"></label>
+          <label class="note-field">비고<input type="text" value="${esc(item.note)}" placeholder="일정 변경 사유 등" data-field="note"></label>
+        </div>
+      </div>`;
+  }
+
+  function simpleRow(item, kind){
+    if (kind === "vacation"){
+      return `<div class="row" data-id="${item.id}"><div class="simple-row">
+        <input type="date" value="${esc(item.date)}" data-field="date">
+        <span class="unit">시간</span>
+        <input class="hours-input tabular" type="number" step="0.5" value="${item.hours ?? ""}" data-field="hours">
+        <button class="icon-btn" data-remove title="삭제" style="margin-left:auto;">${ICON_TRASH}</button>
+      </div></div>`;
+    }
+    return `<div class="row" data-id="${item.id}"><div class="simple-row">
+      <input class="title-input" type="text" value="${esc(item.title)}" placeholder="업무명" data-field="title">
+      <span class="unit">시간</span>
+      <input class="hours-input tabular" type="number" step="0.5" value="${item.hours ?? ""}" data-field="hours">
+      <button class="icon-btn" data-remove title="삭제">${ICON_TRASH}</button>
+    </div></div>`;
+  }
+
+  function itemHeaderRow(){
+    return `
+      <div class="row-head">
+        <span class="ticket">일감번호</span>
+        <span class="title-input">제목</span>
+        <span class="phase-select">구분</span>
+        <span class="hours-input" style="text-align:left;">투입시간</span>
+        <span class="days-input" style="text-align:left; width:auto;">일수</span>
+        <span>진행률</span>
+      </div>`;
+  }
+
+  function subitemHeaderRow(){
+    return `
+      <div class="row-head">
+        <span class="title-input">세부 업무명</span>
+        <span class="phase-select">구분</span>
+        <span class="hours-input" style="text-align:left;">투입시간</span>
+        <span class="days-input" style="text-align:left; width:auto;">일수</span>
+        <span>진행률</span>
+      </div>`;
+  }
+
+  /**
+   * 일감 안의 세부 항목 1줄. 티켓번호는 상위 일감 헤더에만 있고 여기엔 없음.
+   * 구분은 고정 슬롯이 아니라 선택형이라 같은 구분(예: 개발)을 여러 개 추가할 수 있음
+   * (예: 한 티켓에 "로그인 기능"·"2차인증 기능" 두 개발 항목).
+   */
+  function ticketSubitemRow(ticketId, item){
+    const detailId = "d" + item.id;
+    return `
+      <div class="row" data-ticket-id="${ticketId}" data-item-id="${item.id}">
+        <div class="row-main">
+          <input class="title-input" type="text" value="${esc(item.title)}" placeholder="세부 업무명 (예: 로그인 기능)" data-field="title">
+          <select class="phase-select" data-field="phase">${phaseOptions(item.phase)}</select>
+          <span class="unit">시간</span>
+          <input class="hours-input tabular" type="number" step="0.5" value="${item.hours ?? ""}" data-field="hours">
+          <span class="unit">·</span>
+          <input class="days-input tabular" type="number" step="1" min="1" placeholder="1" title="투입일수 (비우면 1일)" value="${item.days ?? ""}" data-field="days">
+          <span class="unit">일</span>
+          <div class="pct-wrap">
+            <input class="completion-input tabular" type="number" min="0" max="100" value="${item.completion ?? ""}" data-field="completion">
+            <span class="unit" style="margin:0;">%</span>
+          </div>
+          ${item.carriedOver ? '<span class="badge carry">이월</span>' : ""}
+          ${Number(item.completion) === 100 ? '<span class="badge done">완료</span>' : ""}
+          <button class="icon-btn chevron" data-toggle="${detailId}" title="일정·비고">${ICON_CAL}</button>
+          <button class="icon-btn" data-remove-subitem title="삭제">${ICON_TRASH}</button>
+        </div>
+        <div class="row-detail" id="${detailId}">
+          <label class="inline">개발완료일<input type="date" value="${esc(item.devDoneDate)}" data-field="devDoneDate"></label>
+          <label class="inline">테스트예정일<input type="date" value="${esc(item.testDate)}" data-field="testDate"></label>
+          <label class="inline">배포예정일<input type="date" value="${esc(item.deployDate)}" data-field="deployDate"></label>
+          <label class="note-field">비고<input type="text" value="${esc(item.note)}" placeholder="일정 변경 사유 등" data-field="note"></label>
+        </div>
+      </div>`;
+  }
+
+  /** 프로젝트 안의 일감(티켓) 블록: 첫 줄은 티켓번호+제목, 그 아래 세부 항목은 필요할 때마다 추가 */
+  function ticketBlock(ticket){
+    return `
+      <div class="ticket-block" data-ticket="${ticket.id}">
+        <div class="ticket-head">
+          <input class="ticket" type="text" value="${esc(ticket.ticket)}" placeholder="티켓번호" data-ticket-field="ticket">
+          <input class="title-input" type="text" value="${esc(ticket.title)}" placeholder="일감 제목" data-ticket-field="title">
+          <button class="icon-btn" data-remove-ticket title="일감 삭제">${ICON_TRASH}</button>
+        </div>
+        ${ticket.subitems.length ? subitemHeaderRow() : ""}
+        <div class="rows" data-subitems>${ticket.subitems.map(i => ticketSubitemRow(ticket.id, i)).join("") || `<p class="empty-hint">아직 항목이 없습니다.</p>`}</div>
+        <button class="ghost" data-add-subitem>+ 항목 추가</button>
+      </div>`;
+  }
+
+  /** 완료율<100인 단계만 다음 주로 이월 (기타/휴가 제외, dev 그룹 항목도 동일 규칙) — docs/project-handoff-summary.md 4.3 규칙 */
+  function buildCarriedOverDraft(fromWeek, label, range){
+    const draft = { status:"draft", label, range, stats:{avgManWeek:"0.00", activeProjects:0}, projects:[], dev:[], etc:[], vacation:[] };
+    (fromWeek?.projects || []).forEach(p => {
+      const carriedTickets = (p.tickets || []).map(t => {
+        const carriedSubitems = (t.subitems || [])
+          .filter(i => (Number(i.hours) > 0 || Number(i.completion) > 0) && Number(i.completion) < 100)
+          .map(i => ({ ...blankSubitem(), title: i.title, phase: i.phase, completion: i.completion, carriedOver: true }));
+        return carriedSubitems.length ? { id: nextId(), ticket: t.ticket, title: t.title, subitems: carriedSubitems } : null;
+      }).filter(Boolean);
+      if (carriedTickets.length){
+        draft.projects.push({ id: nextId(), name: p.name, tickets: carriedTickets });
+      }
+    });
+    (fromWeek?.dev || []).filter(i => Number(i.completion) < 100).forEach(i => {
+      draft.dev.push({ ...blankItem(), ticket: i.ticket, title: i.title, phase: i.phase, completion: i.completion, carriedOver: true });
+    });
+    draft.stats.activeProjects = draft.projects.length;
+    return draft;
+  }
+
+  function renderWrite(){
+    const wk = WEEKS[weekIdx];
+    $("#weekLabel").innerHTML = esc(wk.label) + `<span class="range">${esc(wk.range)}</span>`;
+    $("#prevWeekBtn").disabled = weekIdx === 0;
+    $("#nextWeekBtn").disabled = weekIdx === WEEKS.length - 1;
+
+    if (wk.status === "empty"){
+      writeView.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">${ICON_SPARK}</div>
+          <h3>${esc(wk.label)} 보고서가 아직 없습니다</h3>
+          <p>지난주 미완료 항목은 자동으로 이월되어 채워집니다. 새로 시작해보세요.</p>
+          <button class="btn" id="startDraftBtn">이번 주 보고서 작성 시작</button>
+        </div>`;
+      $("#startDraftBtn").addEventListener("click", () => {
+        const draft = buildCarriedOverDraft(WEEKS[weekIdx - 1], wk.label, wk.range);
+        WEEKS[weekIdx] = draft;
+        renderWrite();
+        showToast(draft.projects.length || draft.dev.length ? "보고서 초안을 만들었어요 (이월 항목 포함)" : "보고서 초안을 만들었어요");
+      });
+      return;
+    }
+
+    const body = [];
+
+    // 제출 여부는 참고 상태일 뿐, 지난 보고서도 항상 수정 + 재제출 가능
+    if (wk.status === "submitted"){
+      const t = computeTotals(wk);
+      body.push(`<div class="locked-banner">${ICON_CHECK} 제출된 보고서입니다 · 총 ${t.totalHours}h · 맨위크 ${t.manWeek} — 수정 후 다시 내보낼 수 있습니다.</div>`);
+    } else {
+      body.push(`
+        <div class="stats">
+          <div class="stat"><span class="k">최근 4주 평균 맨위크</span><span class="v tabular">${wk.stats.avgManWeek}</span></div>
+          <div class="stat"><span class="k">진행중 프로젝트 수</span><span class="v tabular">${wk.stats.activeProjects}</span></div>
+        </div>`);
+    }
+
+    body.push(`<div style="display:flex; flex-direction:column; gap:18px;">`);
+
+    // 프로젝트 — 일감(티켓) 단위로 생성하고, 그 안에 분석/설계·개발·테스트 3단계가 항상 딸려온다
+    (wk.projects || []).forEach(proj => {
+      body.push(`
+        <div class="card" data-project="${proj.id}">
+          <div class="card-head">
+            <div class="card-title">
+              <input class="name-edit" type="text" value="${esc(proj.name)}" data-project-name>
+              <span class="count">${proj.tickets.length}건</span>
+            </div>
+          </div>
+          <div data-tickets>${proj.tickets.map(t => ticketBlock(t)).join("") || `<p style="color:var(--text-faint);font-size:12.5px;padding:8px 0;">아직 일감이 없습니다.</p>`}</div>
+          <button class="ghost" data-add-ticket>+ 일감 추가</button>
+        </div>`);
+    });
+    body.push(`<button class="ghost" data-add-project style="align-self:flex-start;">+ 새 프로젝트</button>`);
+
+    // 개발
+    body.push(`
+      <div class="card" data-group="dev">
+        <div class="card-head"><div class="card-title"><h2>개발</h2><span class="count">${wk.dev.length}건</span></div></div>
+        ${wk.dev.length ? itemHeaderRow() : ""}
+        <div class="rows" data-items>${wk.dev.map(i => itemRow(i)).join("")}</div>
+        <button class="ghost" data-add-item>+ 항목 추가</button>
+      </div>`);
+
+    // 기타
+    body.push(`
+      <div class="card" data-group="etc">
+        <div class="card-head"><div class="card-title"><h2>기타</h2><span class="count">${wk.etc.length}건</span></div></div>
+        <div class="rows" data-items>${wk.etc.map(i => simpleRow(i,"etc")).join("")}</div>
+        <button class="ghost" data-add-item>+ 항목 추가</button>
+      </div>`);
+
+    // 휴가
+    body.push(`
+      <div class="card" data-group="vacation">
+        <div class="card-head"><div class="card-title"><h2>휴가</h2><span class="count">${wk.vacation.length}건</span></div></div>
+        <div class="rows" data-items>${wk.vacation.map(i => simpleRow(i,"vacation")).join("")}</div>
+        <button class="ghost" data-add-item>+ 항목 추가</button>
+      </div>`);
+
+    body.push(`</div>`);
+
+    const submitLabel = wk.status === "submitted" ? "다시 내보내기" : "제출하기";
+    body.push(`<div class="submit-bar"><button class="btn" id="submitBtn">${submitLabel}</button></div>`);
+
+    writeView.innerHTML = body.join("");
+    wireWriteEvents(wk);
+  }
+
+  function wireWriteEvents(wk){
+    writeView.querySelectorAll("[data-toggle]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const panel = document.getElementById(btn.dataset.toggle);
+        panel.classList.toggle("open");
+        btn.classList.toggle("open");
+      });
+    });
+
+    // dev/etc/vacation 항목 (data-id를 가진 .row만 대상 — 일감 단계행(.row[data-ticket-id])은 아래에서 별도 처리)
+    writeView.querySelectorAll(".row[data-id] [data-field]").forEach(el => {
+      el.addEventListener("input", () => {
+        const row = el.closest(".row");
+        const id = Number(row.dataset.id);
+        const field = el.dataset.field;
+        const val = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
+        applyFieldToState(wk, id, field, val);
+        if (field === "completion") toggleDoneBadge(row, val);
+      });
+    });
+
+    writeView.querySelectorAll("[data-remove]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const row = btn.closest(".row");
+        const id = Number(row.dataset.id);
+        removeFromState(wk, id);
+        row.remove();
+      });
+    });
+
+    writeView.querySelectorAll("[data-add-item]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".card");
+        const itemsEl = card.querySelector("[data-items]");
+        const group = card.dataset.group;
+        const item = group === "vacation" ? { id: nextId(), date:"", hours:"" } : group === "etc" ? { id: nextId(), title:"", hours:"" } : blankItem();
+        wk[group].push(item);
+        if (group === "dev" && !card.querySelector(".row-head")) itemsEl.insertAdjacentHTML("beforebegin", itemHeaderRow());
+        itemsEl.insertAdjacentHTML("beforeend", group === "dev" ? itemRow(item) : simpleRow(item, group));
+        wireRowOnce(itemsEl.lastElementChild, wk);
+        card.querySelector(".count").textContent = wk[group].length + "건";
+      });
+    });
+
+    // 프로젝트 일감(티켓) 안의 세부 항목 필드
+    writeView.querySelectorAll(".row[data-ticket-id] [data-field]").forEach(el => {
+      el.addEventListener("input", () => {
+        const row = el.closest(".row");
+        const item = findSubitem(wk, Number(row.dataset.ticketId), Number(row.dataset.itemId));
+        if (!item) return;
+        const field = el.dataset.field;
+        const val = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
+        item[field] = val;
+        if (field === "completion") toggleDoneBadge(row, val);
+      });
+    });
+
+    writeView.querySelectorAll("[data-remove-subitem]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const row = btn.closest(".row");
+        const block = btn.closest(".ticket-block");
+        const ticket = findTicket(wk, Number(block.dataset.ticket));
+        if (ticket) ticket.subitems = ticket.subitems.filter(i => i.id !== Number(row.dataset.itemId));
+        row.remove();
+      });
+    });
+
+    writeView.querySelectorAll("[data-add-subitem]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const block = btn.closest(".ticket-block");
+        const ticket = findTicket(wk, Number(block.dataset.ticket));
+        const item = blankSubitem();
+        ticket.subitems.push(item);
+        const holder = block.querySelector("[data-subitems]");
+        holder.querySelector("p")?.remove();
+        if (!block.querySelector(".row-head")) holder.insertAdjacentHTML("beforebegin", subitemHeaderRow());
+        holder.insertAdjacentHTML("beforeend", ticketSubitemRow(ticket.id, item));
+        wireSubitemRowOnce(holder.lastElementChild, wk);
+      });
+    });
+
+    writeView.querySelectorAll("[data-ticket-field]").forEach(el => {
+      el.addEventListener("input", () => {
+        const ticket = findTicket(wk, Number(el.closest(".ticket-block").dataset.ticket));
+        if (ticket) ticket[el.dataset.ticketField] = el.value;
+      });
+    });
+
+    writeView.querySelectorAll("[data-remove-ticket]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const block = btn.closest(".ticket-block");
+        const card = btn.closest(".card");
+        const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
+        proj.tickets = proj.tickets.filter(t => t.id !== Number(block.dataset.ticket));
+        block.remove();
+        card.querySelector(".count").textContent = proj.tickets.length + "건";
+      });
+    });
+
+    writeView.querySelectorAll("[data-add-ticket]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".card");
+        const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
+        const ticket = blankTicket();
+        proj.tickets.push(ticket);
+        const holder = card.querySelector("[data-tickets]");
+        holder.querySelector("p")?.remove();
+        holder.insertAdjacentHTML("beforeend", ticketBlock(ticket));
+        wireTicketBlockOnce(holder.lastElementChild, wk);
+        card.querySelector(".count").textContent = proj.tickets.length + "건";
+      });
+    });
+
+    const addProjectBtn = writeView.querySelector("[data-add-project]");
+    if (addProjectBtn){
+      addProjectBtn.addEventListener("click", () => {
+        const proj = { id: nextId(), name: "새 프로젝트", tickets: [] };
+        wk.projects.push(proj);
+        renderWrite();
+      });
+    }
+
+    writeView.querySelectorAll("[data-project-name]").forEach(el => {
+      el.addEventListener("input", () => {
+        const id = Number(el.closest(".card").dataset.project);
+        const proj = wk.projects.find(p => p.id === id);
+        if (proj) proj.name = el.value;
+      });
+    });
+
+    const submitBtn = $("#submitBtn");
+    if (submitBtn) submitBtn.addEventListener("click", () => openPreview(wk));
+  }
+
+  function wireRowOnce(rowEl, wk){
+    rowEl.querySelectorAll("[data-toggle]").forEach(btn => btn.addEventListener("click", () => {
+      const panel = document.getElementById(btn.dataset.toggle);
+      panel.classList.toggle("open"); btn.classList.toggle("open");
+    }));
+    rowEl.querySelectorAll("[data-field]").forEach(el => el.addEventListener("input", () => {
+      const id = Number(rowEl.dataset.id);
+      const val = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
+      applyFieldToState(wk, id, el.dataset.field, val);
+      if (el.dataset.field === "completion") toggleDoneBadge(rowEl, val);
+    }));
+    rowEl.querySelectorAll("[data-remove]").forEach(btn => btn.addEventListener("click", () => {
+      removeFromState(wk, Number(rowEl.dataset.id));
+      rowEl.remove();
+    }));
+  }
+
+  /** 새로 추가된 .ticket-block 하나(3개 단계행 포함)에 이벤트를 붙인다. */
+  function wireTicketBlockOnce(blockEl, wk){
+    blockEl.querySelectorAll("[data-ticket-field]").forEach(el => el.addEventListener("input", () => {
+      const ticket = findTicket(wk, Number(blockEl.dataset.ticket));
+      if (ticket) ticket[el.dataset.ticketField] = el.value;
+    }));
+    blockEl.querySelectorAll(".row[data-ticket-id]").forEach(row => wireSubitemRowOnce(row, wk));
+    blockEl.querySelector("[data-add-subitem]")?.addEventListener("click", () => {
+      const ticket = findTicket(wk, Number(blockEl.dataset.ticket));
+      const item = blankSubitem();
+      ticket.subitems.push(item);
+      const holder = blockEl.querySelector("[data-subitems]");
+      holder.querySelector("p")?.remove();
+      if (!blockEl.querySelector(".row-head")) holder.insertAdjacentHTML("beforebegin", subitemHeaderRow());
+      holder.insertAdjacentHTML("beforeend", ticketSubitemRow(ticket.id, item));
+      wireSubitemRowOnce(holder.lastElementChild, wk);
+    });
+    blockEl.querySelector("[data-remove-ticket]")?.addEventListener("click", () => {
+      const card = blockEl.closest(".card");
+      const proj = wk.projects.find(p => p.id === Number(card.dataset.project));
+      proj.tickets = proj.tickets.filter(t => t.id !== Number(blockEl.dataset.ticket));
+      blockEl.remove();
+      card.querySelector(".count").textContent = proj.tickets.length + "건";
+    });
+  }
+
+  /** 일감 세부 항목 행 하나(신규 추가분)에 이벤트를 붙인다. */
+  function wireSubitemRowOnce(rowEl, wk){
+    rowEl.querySelectorAll("[data-toggle]").forEach(btn => btn.addEventListener("click", () => {
+      const panel = document.getElementById(btn.dataset.toggle);
+      panel.classList.toggle("open"); btn.classList.toggle("open");
+    }));
+    rowEl.querySelectorAll("[data-field]").forEach(el => el.addEventListener("input", () => {
+      const item = findSubitem(wk, Number(rowEl.dataset.ticketId), Number(rowEl.dataset.itemId));
+      if (!item) return;
+      const val = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
+      item[el.dataset.field] = val;
+      if (el.dataset.field === "completion") toggleDoneBadge(rowEl, val);
+    }));
+    rowEl.querySelector("[data-remove-subitem]")?.addEventListener("click", () => {
+      const block = rowEl.closest(".ticket-block");
+      const ticket = findTicket(wk, Number(block.dataset.ticket));
+      if (ticket) ticket.subitems = ticket.subitems.filter(i => i.id !== Number(rowEl.dataset.itemId));
+      rowEl.remove();
+    });
+  }
+
+  function toggleDoneBadge(row, completionVal){
+    const done = Number(completionVal) === 100;
+    let badge = row.querySelector(".badge.done");
+    if (done && !badge){
+      row.querySelector(".row-main").insertBefore(
+        Object.assign(document.createElement("span"), { className: "badge done", textContent: "완료" }),
+        row.querySelector("[data-toggle]")
+      );
+    }
+    if (!done && badge) badge.remove();
+  }
+
+  function findItemContainer(wk, id){
+    for (const g of ["dev","etc","vacation"]) if (wk[g] && wk[g].some(i => i.id === id)) return wk[g];
+    return null;
+  }
+  function applyFieldToState(wk, id, field, val){
+    const arr = findItemContainer(wk, id);
+    const item = arr && arr.find(i => i.id === id);
+    if (item) item[field] = val;
+  }
+  function removeFromState(wk, id){
+    const arr = findItemContainer(wk, id);
+    if (!arr) return;
+    const idx = arr.findIndex(i => i.id === id);
+    if (idx > -1) arr.splice(idx, 1);
+  }
+  function findTicket(wk, ticketId){
+    for (const proj of wk.projects || []){
+      const t = proj.tickets.find(t => t.id === ticketId);
+      if (t) return t;
+    }
+    return null;
+  }
+  function findSubitem(wk, ticketId, itemId){
+    const t = findTicket(wk, ticketId);
+    return t ? (t.subitems.find(i => i.id === itemId) || null) : null;
+  }
+
+  // ---------- markdown preview / export ----------
+  function buildMarkdown(wk){
+    const lines = [];
+    lines.push(`# 정준호 · ${wk.label}`);
+    lines.push("");
+    lines.push(`파트원 · ${wk.range}`);
+    lines.push("");
+
+    const fmtItem = (i) => {
+      let s = "- ";
+      if (i.ticket) s += `${i.ticket} : `;
+      s += i.title || "(제목 없음)";
+      if (i.phase) s += ` [${i.phase === "분석/설계" ? "설계" : i.phase}]`;
+      const parts = [];
+      if (i.hours !== "" && i.hours != null) parts.push(`${i.hours}h`);
+      parts.push(`${i.completion === "" || i.completion == null ? 0 : i.completion}%`);
+      s += " — " + parts.join(" · ");
+      if (i.carriedOver) s += " (이월)";
+      return s;
+    };
+
+    const scheduleLines = (i) => {
+      const out = [];
+      if (i.devDoneDate) out.push(`  - 개발완료일: ${i.devDoneDate}`);
+      if (i.testDate) out.push(`  - 테스트예정일: ${i.testDate}`);
+      if (i.deployDate) out.push(`  - 배포예정일: ${i.deployDate}`);
+      if (i.note) out.push(`  - 비고: ${i.note}`);
+      return out;
+    };
+
+    // 일감의 세부 항목은 손댄 흔적(시간 또는 진행률)이 있을 때만 한 줄로 내보낸다.
+    // 같은 티켓에 항목이 여러 개면(예: 개발 항목 2개) 항목 수만큼 줄이 나뉜다 (스키마상 항목 1개 = 줄 1개).
+    const subitemTouched = (i) => (i.hours !== "" && i.hours != null) || (i.completion !== "" && i.completion != null);
+
+    if (wk.projects && wk.projects.some(p => p.tickets.some(t => t.subitems.some(subitemTouched)))){
+      lines.push("## 프로젝트", "");
+      wk.projects.forEach(p => {
+        const touchedTickets = p.tickets.filter(t => t.subitems.some(subitemTouched));
+        if (!touchedTickets.length) return;
+        lines.push(`### ${p.name}`, "");
+        touchedTickets.forEach(t => {
+          t.subitems.filter(subitemTouched).forEach(i => {
+            lines.push(fmtItem({ ticket: t.ticket, title: i.title || t.title, phase: i.phase, ...i }));
+            lines.push(...scheduleLines(i));
+          });
+        });
+        lines.push("");
+      });
+    }
+    if (wk.dev && wk.dev.length){
+      lines.push("## 개발", "");
+      wk.dev.forEach(i => { lines.push(fmtItem(i)); lines.push(...scheduleLines(i)); });
+      lines.push("");
+    }
+    if (wk.etc && wk.etc.length){
+      lines.push("## 기타", "");
+      wk.etc.forEach(i => lines.push(`- ${i.title || "(제목 없음)"}${i.hours !== "" && i.hours != null ? " — " + i.hours + "h" : ""}`));
+      lines.push("");
+    }
+    if (wk.vacation && wk.vacation.length){
+      lines.push("## 휴가", "");
+      wk.vacation.forEach(i => lines.push(`- ${i.date || "(날짜 없음)"}${i.hours !== "" && i.hours != null ? " — " + i.hours + "h" : ""}`));
+      lines.push("");
+    }
+
+    const t = computeTotals(wk);
+    lines.push("---", "");
+    lines.push(`**합계: ${t.totalHours}h / ${t.manWeek} 맨위크**`);
+    return { text: lines.join("\n"), ...t };
+  }
+
+  let pendingWeek = null;
+  function openPreview(wk){
+    pendingWeek = wk;
+    const { text } = buildMarkdown(wk);
+    $("#modalTitle").textContent = "제출 전 미리보기";
+    $("#modalPre").textContent = text;
+    $("#modalConfirm").textContent = "md로 내보내기";
+    $("#modalBackdrop").classList.add("open");
+  }
+  $("#modalClose").addEventListener("click", () => $("#modalBackdrop").classList.remove("open"));
+  $("#modalEdit").addEventListener("click", () => $("#modalBackdrop").classList.remove("open"));
+  $("#modalBackdrop").addEventListener("click", (e) => { if (e.target.id === "modalBackdrop") $("#modalBackdrop").classList.remove("open"); });
+  $("#modalConfirm").addEventListener("click", () => {
+    const { text } = buildMarkdown(pendingWeek);
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `주간보고_정준호_${pendingWeek.label.replace(" ", "")}.md`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    pendingWeek.status = "submitted";
+    $("#modalBackdrop").classList.remove("open");
+    renderWrite();
+    showToast("md 파일을 내보냈어요");
+  });
+
+  // ---------- history ----------
+  // 목록일 뿐 별도 데이터 사본이 아님 — WEEKS에서 제출된 주만 뽑아 보여주고,
+  // 클릭하면 "작성" 탭의 그 주로 이동한다. 그 주도 똑같이 수정 가능.
+  function renderHistory(){
+    const submitted = WEEKS.map((w, idx) => ({ w, idx })).filter(x => x.w.status === "submitted");
+    $("#histCount").textContent = submitted.length;
+
+    if (!submitted.length){
+      historyList.innerHTML = `<p class="empty-hint">아직 제출된 보고서가 없습니다.</p>`;
+      return;
+    }
+
+    historyList.innerHTML = submitted.map(({ w, idx }) => {
+      const t = computeTotals(w);
+      return `
+      <div class="hist-card" data-idx="${idx}">
+        <div class="hist-summary">
+          ${t.low ? '<div class="low-stripe"></div>' : ""}
+          <div class="hist-left">
+            <div class="wk">${esc(w.label)} ${t.low ? '<span class="badge carry">맨위크 낮음</span>' : ""}</div>
+            <div class="rng">${esc(w.range)}</div>
+          </div>
+          <div class="hist-right">
+            <div class="hist-metric"><div class="n tabular">${t.totalHours}h</div><div class="l">총 시간</div></div>
+            <div class="hist-metric ${t.low ? "low" : ""}"><div class="n tabular">${t.manWeek}</div><div class="l">맨위크</div></div>
+            <span class="chev">${ICON_CHEV}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+
+    historyList.querySelectorAll(".hist-card").forEach(el => {
+      el.addEventListener("click", () => {
+        weekIdx = Number(el.dataset.idx);
+        switchTab("write");
+      });
+    });
+  }
+
+  // ---------- tabs / week pager ----------
+  $("#tabWriteBtn").addEventListener("click", () => switchTab("write"));
+  $("#tabHistoryBtn").addEventListener("click", () => switchTab("history"));
+  function switchTab(tab){
+    const isWrite = tab === "write";
+    $("#writeView").classList.toggle("active", isWrite);
+    $("#historyView").classList.toggle("active", !isWrite);
+    $("#tabWriteBtn").classList.toggle("active", isWrite);
+    $("#tabHistoryBtn").classList.toggle("active", !isWrite);
+    $("#tabWriteBtn").setAttribute("aria-selected", isWrite);
+    $("#tabHistoryBtn").setAttribute("aria-selected", !isWrite);
+    if (isWrite) renderWrite(); else renderHistory();
+  }
+
+  $("#prevWeekBtn").addEventListener("click", () => { if (weekIdx > 0){ weekIdx--; renderWrite(); } });
+  $("#nextWeekBtn").addEventListener("click", () => { if (weekIdx < WEEKS.length - 1){ weekIdx++; renderWrite(); } });
+
+  let toastTimer = null;
+  function showToast(msg){
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  renderWrite();
+  renderHistory();
+})();
+</script>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>시작하기 · 주간업무보고</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<main class="container">
+    <div class="card onboarding-form">
+        <h1>처음이시군요 👋</h1>
+        <p style="color: var(--muted);">이름과 직책, 티켓번호 접두사를 입력하면 다음부터는 이 화면이 생략됩니다.</p>
+
+        <p th:if="${error}" class="field-errors" th:text="${error}">에러</p>
+
+        <form th:action="@{/onboarding}" th:object="${form}" method="post">
+            <label for="name">이름</label>
+            <input type="text" id="name" th:field="*{name}" placeholder="예: 정준호"/>
+
+            <label for="role">직책</label>
+            <input type="text" id="role" th:field="*{role}" placeholder="예: 파트원"/>
+
+            <label for="ticketPrefix">티켓번호 접두사</label>
+            <input type="text" id="ticketPrefix" th:field="*{ticketPrefix}" placeholder="예: NHNKCP-개발1팀"/>
+
+            <button type="submit" class="btn" style="margin-top: 20px; width: 100%;">시작하기</button>
+        </form>
+    </div>
+</main>
+</body>
+</html>

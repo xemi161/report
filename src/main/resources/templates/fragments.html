@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav th:fragment="nav(active)" class="topnav">
+    <div class="topnav-inner">
+        <span class="brand">주간업무보고</span>
+        <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? ' active'">대시보드</a>
+        <a th:href="@{/entry}" th:classappend="${active == 'entry'} ? ' active'">등록</a>
+        <a th:href="@{/history}" th:classappend="${active == 'history'} ? ' active'">이력</a>
+    </div>
+</nav>
+</body>
+</html>

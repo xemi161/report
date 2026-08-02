@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>미리보기 · 주간업무보고</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div th:replace="~{fragments :: nav(${activeMenu})}"></div>
+<main class="container">
+    <h1 th:text="${report.weekLabel} + ' 미리보기'">미리보기</h1>
+    <p style="color: var(--muted);">실제 저장될 문서 형태 그대로입니다. 내용을 확인한 뒤 내보내기를 눌러주세요.</p>
+
+    <div class="md-preview" th:text="${mdText}">md 내용</div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;" th:if="${editable}">
+        <a class="btn secondary" th:href="@{/entry}">수정하기</a>
+        <form th:action="@{/entry/submit}" method="post" class="plain">
+            <button type="submit" class="btn">md로 내보내기</button>
+        </form>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;" th:unless="${editable}">
+        <a class="btn" th:href="@{'/export/' + ${report.id}}">다운로드</a>
+    </div>
+</main>
+</body>
+</html>
