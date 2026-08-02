@@ -15,6 +15,17 @@ spring:
     open-in-view: false
   thymeleaf:
     cache: false
+  web:
+    resources:
+      chain:
+        # css/js URL에 내용 해시를 붙인다(/css/app.css -> /css/app-<hash>.css).
+        # 기본 설정은 Cache-Control 없이 Last-Modified만 내려주는데, 이러면 브라우저가
+        # 재검증 없이 옛 파일을 계속 써서 jar를 새로 배포해도 예전 화면이 그대로 보인다.
+        # 해시가 바뀌면 URL이 바뀌므로 갱신이 항상 즉시 반영된다.
+        strategy:
+          content:
+            enabled: true
+            paths: /**
 
 weekly-report:
   default-ticket-prefix: "NHNKCP-개발1팀"

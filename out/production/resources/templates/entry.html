@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('작성')}"></head>
+<body>
+<header th:replace="~{fragments :: header('write', ${period}, ${prevWeek}, ${nextWeek})}"></header>
+
+<main>
+    <!--
+      htmx가 통째로 갈아끼우는 단위. 항목을 더하거나 지우면 카드 건수·통계·빈 상태가
+      한꺼번에 맞아떨어져야 해서 이 섹션 전체를 다시 렌더링한다.
+    -->
+    <section id="writeView" class="view active" th:fragment="writeView">
+
+        <div th:if="${toast}" th:attr="data-toast=${toast}" hidden></div>
+        <div class="error-banner" th:if="${error}" th:text="${error}">에러</div>
+
+        <!-- 아직 이 주 보고서가 없을 때 -->
+        <div class="empty-state" th:if="${report == null}">
+            <div class="icon">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </div>
+            <h3 th:text="${period.label()} + ' 보고서가 아직 없습니다'">보고서가 아직 없습니다</h3>
+            <p>지난주 미완료 항목은 자동으로 이월되어 채워집니다. 새로 시작해보세요.</p>
+            <button type="button" class="btn"
+                    th:hx-post="@{/entry/start(week=${week})}"
+                    hx-target="#writeView" hx-swap="outerHTML">이번 주 보고서 작성 시작</button>
+        </div>
+
+        <th:block th:if="${report != null}">
+            <!-- 제출 여부는 잠금이 아니라 상태 표시일 뿐 — 지난 주도 계속 고칠 수 있다 -->
+            <div class="locked-banner" th:if="${report.status.name() == 'SUBMITTED'}">
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span th:text="'제출된 보고서입니다 · 총 ' + ${report.totalHoursDisplay()} + 'h · 맨위크 ' + ${report.totalManWeek} + ' — 수정 후 다시 내보낼 수 있습니다.'">제출됨</span>
+            </div>
+
+            <div class="stats" th:unless="${report.status.name() == 'SUBMITTED'}">
+                <div class="stat">
+                    <span class="k">최근 4주 평균 맨위크</span>
+                    <span class="v tabular" th:text="${avgManWeek}">0.00</span>
+                </div>
+                <div class="stat">
+                    <span class="k">진행중 프로젝트 수</span>
+                    <span class="v tabular" th:text="${activeProjectCount}">0</span>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:18px;">
+
+                <!-- 프로젝트: 카드 하나 = 일감 하나. 헤더가 일감번호 + 프로젝트명이다. -->
+                <div class="card" th:each="card : ${projectCards}">
+                    <div class="card-head">
+                        <div class="card-title">
+                            <form th:hx-post="@{'/entry/projects/' + ${card.project.id} + '/ticket'(week=${week})}"
+                                  hx-trigger="change" hx-swap="none">
+                                <input class="ticket" type="text" name="ticket"
+                                       th:value="${card.project.ticket}" placeholder="티켓번호"/>
+                            </form>
+                            <form th:hx-post="@{'/entry/projects/' + ${card.project.id} + '/rename'}"
+                                  hx-trigger="change" hx-swap="none">
+                                <input class="name-edit" type="text" name="name" th:value="${card.project.name}"/>
+                            </form>
+                        </div>
+                        <div class="card-actions">
+                            <span class="count" th:text="${#lists.size(card.items)} + '건'">0건</span>
+                            <button type="button" class="icon-btn" title="프로젝트 삭제"
+                                    th:hx-post="@{'/entry/projects/' + ${card.project.id} + '/delete'(week=${week})}"
+                                    hx-target="#writeView" hx-swap="outerHTML"
+                                    th:attr="hx-confirm=${card.project.name} + ' 프로젝트와 이번 주 해당 항목을 삭제할까요?'">
+                                <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 4.5h10M6.5 4.5V3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1.5M4.5 4.5l.6 8.4a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-8.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- th:replace 는 th:each/th:if 보다 먼저 처리되므로 반드시 바깥 태그에 나눠 쓴다 -->
+                    <th:block th:if="${!#lists.isEmpty(card.items)}">
+                        <div th:replace="~{fragments-entry :: subitemHeader}"></div>
+                    </th:block>
+                    <div class="rows">
+                        <th:block th:each="item : ${card.items}">
+                            <div th:replace="~{fragments-entry :: projectSubitemRow(${item}, ${week}, ${card.project.id})}"></div>
+                        </th:block>
+                    </div>
+                    <p class="empty-hint" th:if="${#lists.isEmpty(card.items)}">아직 항목이 없습니다.</p>
+
+                    <button type="button" class="ghost"
+                            th:hx-post="@{/entry/items(week=${week}, group='PROJECT', projectId=${card.project.id})}"
+                            hx-target="#writeView" hx-swap="outerHTML">+ 항목 추가</button>
+                </div>
+
+                <button type="button" class="ghost" style="align-self:flex-start;"
+                        th:hx-post="@{/entry/projects(week=${week})}"
+                        hx-target="#writeView" hx-swap="outerHTML">+ 새 프로젝트</button>
+
+                <!-- 개발 -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-title">
+                            <h2>개발</h2>
+                            <span class="count" th:text="${#lists.size(devItems)} + '건'">0건</span>
+                        </div>
+                    </div>
+                    <th:block th:if="${!#lists.isEmpty(devItems)}">
+                        <div th:replace="~{fragments-entry :: devHeader}"></div>
+                    </th:block>
+                    <div class="rows">
+                        <th:block th:each="item : ${devItems}">
+                            <div th:replace="~{fragments-entry :: devItemRow(${item}, ${week})}"></div>
+                        </th:block>
+                    </div>
+                    <button type="button" class="ghost"
+                            th:hx-post="@{/entry/items(week=${week}, group='DEV')}"
+                            hx-target="#writeView" hx-swap="outerHTML">+ 항목 추가</button>
+                </div>
+
+                <!-- 기타 -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-title">
+                            <h2>기타</h2>
+                            <span class="count" th:text="${#lists.size(etcItems)} + '건'">0건</span>
+                        </div>
+                    </div>
+                    <div class="rows">
+                        <th:block th:each="item : ${etcItems}">
+                            <div th:replace="~{fragments-entry :: etcRow(${item}, ${week})}"></div>
+                        </th:block>
+                    </div>
+                    <button type="button" class="ghost"
+                            th:hx-post="@{/entry/items(week=${week}, group='ETC')}"
+                            hx-target="#writeView" hx-swap="outerHTML">+ 항목 추가</button>
+                </div>
+
+                <!-- 휴가 -->
+                <div class="card">
+                    <div class="card-head">
+                        <div class="card-title">
+                            <h2>휴가</h2>
+                            <span class="count" th:text="${#lists.size(vacationItems)} + '건'">0건</span>
+                        </div>
+                    </div>
+                    <div class="rows">
+                        <th:block th:each="item : ${vacationItems}">
+                            <div th:replace="~{fragments-entry :: vacationRow(${item}, ${week})}"></div>
+                        </th:block>
+                    </div>
+                    <button type="button" class="ghost"
+                            th:hx-post="@{/entry/items(week=${week}, group='VACATION')}"
+                            hx-target="#writeView" hx-swap="outerHTML">+ 항목 추가</button>
+                </div>
+            </div>
+
+            <div class="submit-bar">
+                <button type="button" class="btn"
+                        th:text="${report.status.name() == 'SUBMITTED'} ? '다시 내보내기' : '제출하기'"
+                        th:hx-get="@{/entry/preview(week=${week})}"
+                        hx-target="#modalHost" hx-swap="innerHTML">제출하기</button>
+            </div>
+        </th:block>
+    </section>
+</main>
+
+<div id="modalHost"></div>
+<div class="toast" id="toast"></div>
+</body>
+</html>

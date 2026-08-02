@@ -1,0 +1,20 @@
+server:
+  port: 8099
+
+spring:
+  application:
+    name: weekly-report
+  datasource:
+    url: jdbc:h2:file:${user.home}/.weekly-report/data/db;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  thymeleaf:
+    cache: false
+
+weekly-report:
+  default-ticket-prefix: "NHNKCP-개발1팀"

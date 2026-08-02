@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- 공통 <head>. htmx는 폐쇄망이라 CDN 대신 로컬에 받아둔 파일을 쓴다. -->
+<th:block th:fragment="head(pageTitle)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title th:text="${pageTitle} + ' · 주간업무보고'">주간업무보고</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}"/>
+    <script th:src="@{/js/htmx.min.js}" defer></script>
+    <script th:src="@{/js/app.js}" defer></script>
+</th:block>
+
+<!--
+  상단 헤더: 브랜드 · 주차 페이저 · 탭.
+  주차 이동과 탭 전환은 페이지 전체가 바뀌므로 htmx가 아니라 평범한 링크다.
+  히스토리 탭에는 주차 개념이 없어 페이저를 숨긴다.
+-->
+<header th:fragment="header(activeTab, period, prevWeek, nextWeek)">
+    <div class="header-inner">
+        <div class="brand">
+            <span class="name">주간업무보고</span>
+            <span class="who" th:if="${settings != null}"
+                  th:text="${settings.name} + ' · ' + ${settings.role}">정준호 · 파트원</span>
+        </div>
+
+        <div class="pager" th:if="${period != null}">
+            <a th:href="@{/entry(week=${prevWeek})}" aria-label="이전 주" title="이전 주">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <!-- 바깥 div에 th:text를 걸면 안쪽 range span까지 지워지므로 각각 따로 채운다 -->
+            <div class="label">
+                <span th:text="${period.label()}">8월 1주</span>
+                <span class="range"
+                      th:text="${#temporals.format(period.weekStart(), 'MM.dd')} + '(금) ~ ' + ${#temporals.format(period.weekEnd(), 'MM.dd')} + '(목)'">07.31(금) ~ 08.06(목)</span>
+            </div>
+            <a th:href="@{/entry(week=${nextWeek})}" aria-label="다음 주" title="다음 주">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+        </div>
+
+        <div class="seg" role="tablist">
+            <a th:href="@{/entry}" th:classappend="${activeTab == 'write'} ? ' active'"
+               role="tab" th:attr="aria-selected=${activeTab == 'write'}">작성</a>
+            <a th:href="@{/history}" th:classappend="${activeTab == 'history'} ? ' active'"
+               role="tab" th:attr="aria-selected=${activeTab == 'history'}"
+               th:text="'히스토리 · ' + ${historyCount}">히스토리 · 0</a>
+        </div>
+    </div>
+</header>
+
+</body>
+</html>

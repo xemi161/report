@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('히스토리')}"></head>
+<body>
+<header th:replace="~{fragments :: header('history', null, null, null)}"></header>
+
+<main>
+    <section class="view active">
+        <div style="font-size:15px; font-weight:700;">과거 보고서</div>
+
+        <p class="empty-hint" th:if="${#lists.isEmpty(reports)}">아직 제출된 보고서가 없습니다.</p>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <!--
+              카드 전체가 그 주의 작성 화면으로 가는 링크다.
+              (제출된 주도 계속 수정할 수 있으므로 읽기 전용 상세 화면을 따로 두지 않는다.)
+            -->
+            <a class="hist-card" th:each="r : ${reports}" th:href="@{/entry(week=${r.weekStart})}">
+                <div class="hist-summary">
+                    <div class="low-stripe" th:if="${r.totalManWeek.compareTo(lowThreshold) < 0}"></div>
+                    <div class="hist-left">
+                        <div class="wk">
+                            <span th:text="${r.weekLabel}">8월 1주</span>
+                            <span class="badge carry" th:if="${r.totalManWeek.compareTo(lowThreshold) < 0}">맨위크 낮음</span>
+                        </div>
+                        <div class="rng"
+                             th:text="${#temporals.format(r.weekStart, 'MM.dd')} + '(금) ~ ' + ${#temporals.format(r.weekEnd, 'MM.dd')} + '(목)'">기간</div>
+                    </div>
+                    <div class="hist-right">
+                        <div class="hist-metric">
+                            <div class="n tabular" th:text="${r.totalHoursDisplay()} + 'h'">0h</div>
+                            <div class="l">총 시간</div>
+                        </div>
+                        <div class="hist-metric" th:classappend="${r.totalManWeek.compareTo(lowThreshold) < 0} ? ' low'">
+                            <div class="n tabular" th:text="${r.totalManWeek}">0.00</div>
+                            <div class="l">맨위크</div>
+                        </div>
+                        <span class="chev">
+                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </section>
+</main>
+</body>
+</html>
