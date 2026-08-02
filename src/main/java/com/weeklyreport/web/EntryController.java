@@ -2,7 +2,9 @@ package com.weeklyreport.web;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -246,16 +248,24 @@ public class EntryController {
     /**
      * 활성 프로젝트마다 카드 하나. "프로젝트 = 일감 하나"라 카드 헤더가 곧 일감번호이고,
      * 그 아래 세부 항목들이 이 주에 그 프로젝트로 기록된 ReportItem들이다.
+     *
+     * <p>이 주에 항목이 있는 프로젝트는 <b>종료(비활성)됐더라도 카드를 그린다</b> —
+     * 활성 목록만으로 그리면 그 항목들이 화면에서만 사라진 채 합계·md 내보내기에는 그대로 남아
+     * 손댈 수 없는 유령 데이터가 된다.
      */
     private List<ProjectCard> buildProjectCards(WeeklyReport report) {
-        List<ProjectCard> cards = new ArrayList<>();
+        Map<Project, List<ReportItem>> itemsByProject = new LinkedHashMap<>();
         for (Project project : projectRepository.findByActiveTrueOrderByNameAsc()) {
-            List<ReportItem> items = report.getItems().stream()
-                    .filter(i -> i.getGroup() == Group.PROJECT && project.equals(i.getProject()))
-                    .toList();
-            cards.add(new ProjectCard(project, items));
+            itemsByProject.put(project, new ArrayList<>());
         }
-        return cards;
+        for (ReportItem item : report.getItems()) {
+            if (item.getGroup() == Group.PROJECT && item.getProject() != null) {
+                itemsByProject.computeIfAbsent(item.getProject(), p -> new ArrayList<>()).add(item);
+            }
+        }
+        return itemsByProject.entrySet().stream()
+                .map(e -> new ProjectCard(e.getKey(), e.getValue()))
+                .toList();
     }
 
     private List<ReportItem> filterGroup(WeeklyReport report, Group group) {
