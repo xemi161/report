@@ -4,45 +4,42 @@
 <body>
 <header th:replace="~{fragments :: header('history', null, null, null)}"></header>
 
+<!--
+  히스토리 탭은 두 뷰를 담는다 — 과거 보고서 목록(기본)과 "한 일 기록" 월별 열람.
+  4번째 탭으로 올리지 않은 이유: 헤더에 '히스토리'와 '기록'이 나란히 서면 한국어로 사실상 동의어이고,
+  두 목록의 성격이 같다(지난 것을 최신순으로 훑고, 누르면 그 시점으로 들어간다).
+  뷰 상태는 새 라우트를 만들지 않고 쿼리 파라미터로 들고 다닌다(/entry?week= 관례와 동일).
+-->
 <main>
     <section class="view active">
-        <div style="font-size:15px; font-weight:700;">과거 보고서</div>
-
-        <p class="empty-hint" th:if="${#lists.isEmpty(reports)}">아직 제출된 보고서가 없습니다.</p>
-
-        <div style="display:flex; flex-direction:column; gap:12px;">
-            <!--
-              카드 전체가 그 주의 작성 화면으로 가는 링크다.
-              (제출된 주도 계속 수정할 수 있으므로 읽기 전용 상세 화면을 따로 두지 않는다.)
-            -->
-            <a class="hist-card" th:each="r : ${reports}" th:href="@{/entry(week=${r.weekStart})}">
-                <div class="hist-summary">
-                    <div class="low-stripe" th:if="${r.totalManWeek.compareTo(lowThreshold) < 0}"></div>
-                    <div class="hist-left">
-                        <div class="wk">
-                            <span th:text="${r.weekLabel}">8월 1주</span>
-                            <span class="badge carry" th:if="${r.totalManWeek.compareTo(lowThreshold) < 0}">맨위크 낮음</span>
-                        </div>
-                        <div class="rng"
-                             th:text="${#temporals.format(r.weekStart, 'MM.dd')} + '(금) ~ ' + ${#temporals.format(r.weekEnd, 'MM.dd')} + '(목)'">기간</div>
-                    </div>
-                    <div class="hist-right">
-                        <div class="hist-metric">
-                            <div class="n tabular" th:text="${r.totalHoursDisplay()} + 'h'">0h</div>
-                            <div class="l">총 시간</div>
-                        </div>
-                        <div class="hist-metric" th:classappend="${r.totalManWeek.compareTo(lowThreshold) < 0} ? ' low'">
-                            <div class="n tabular" th:text="${r.totalManWeek}">0.00</div>
-                            <div class="l">맨위크</div>
-                        </div>
-                        <span class="chev">
-                            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </span>
-                    </div>
-                </div>
-            </a>
+        <div class="hist-switch">
+            <div class="seg" role="tablist">
+                <a th:href="@{/history(view='reports')}" role="tab"
+                   th:classappend="${historyView == 'reports'} ? ' active'"
+                   th:attr="aria-selected=${historyView == 'reports'}"
+                   th:text="'과거 보고서 · ' + ${reportCount}">과거 보고서 · 0</a>
+                <a th:href="@{/history(view='records')}" role="tab"
+                   th:classappend="${historyView == 'records'} ? ' active'"
+                   th:attr="aria-selected=${historyView == 'records'}"
+                   th:text="'한 일 기록 · ' + ${dailyNoteCount}">한 일 기록 · 0</a>
+            </div>
         </div>
+
+        <!-- 과거 보고서: 카드 전체가 그 주의 작성 화면으로 가는 링크다(읽기 전용 상세 화면 없음) -->
+        <div class="dash-list" th:if="${historyView == 'reports'}">
+            <th:block th:each="r : ${reports}">
+                <a th:replace="~{fragments :: reportCard(${r}, ${lowThreshold})}"></a>
+            </th:block>
+            <p class="empty-hint" th:if="${#lists.isEmpty(reports)}">아직 제출된 보고서가 없습니다.</p>
+        </div>
+
+        <!-- 한 일 기록: 월 단위 · 최신순. 추가/삭제는 이 블록(#recordsPane)만 통째로 교체된다. -->
+        <th:block th:if="${historyView == 'records'}">
+            <div th:replace="~{fragments-daily :: recordsPane}"></div>
+        </th:block>
     </section>
 </main>
+
+<div class="toast" id="toast"></div>
 </body>
 </html>

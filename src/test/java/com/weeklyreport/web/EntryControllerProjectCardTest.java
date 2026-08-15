@@ -14,6 +14,7 @@ import com.weeklyreport.domain.WeeklyReport;
 import com.weeklyreport.domain.enums.Group;
 import com.weeklyreport.repository.AppSettingsRepository;
 import com.weeklyreport.repository.ProjectRepository;
+import com.weeklyreport.service.DailyNoteService;
 import com.weeklyreport.service.EntryService;
 import com.weeklyreport.service.MdExportService;
 
@@ -32,9 +33,11 @@ class EntryControllerProjectCardTest {
     private final EntryService entryService = Mockito.mock(EntryService.class);
     private final AppSettingsRepository appSettingsRepository = Mockito.mock(AppSettingsRepository.class);
     private final MdExportService mdExportService = Mockito.mock(MdExportService.class);
+    /** 좌측 일일 기록 패널은 이 테스트의 관심사가 아니다(기록은 보고서 데이터와 무관). */
+    private final DailyNoteService dailyNoteService = Mockito.mock(DailyNoteService.class);
 
-    private final EntryController controller =
-            new EntryController(entryService, projectRepository, appSettingsRepository, mdExportService);
+    private final EntryController controller = new EntryController(
+            entryService, projectRepository, appSettingsRepository, mdExportService, dailyNoteService);
 
     private Project project(long id, String name, boolean active) {
         Project p = new Project(name);

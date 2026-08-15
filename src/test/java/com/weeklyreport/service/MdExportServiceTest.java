@@ -7,8 +7,6 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weeklyreport.domain.AppSettings;
 import com.weeklyreport.domain.Project;
 import com.weeklyreport.domain.ReportItem;
@@ -63,50 +61,26 @@ class MdExportServiceTest {
         String md = exportSample();
 
         assertThat(md).contains("# 정준호 · 8월 1주");
-        assertThat(md).contains("파트원 · 07.31 (금) ~ 08.06 (목)");
+        assertThat(md).contains("파트원 · 2026.07.31 (금) ~ 2026.08.06 (목)");
+        assertThat(md).contains("## 프로젝트");
         assertThat(md).contains("### GTPP");
-        assertThat(md).contains("- NHNKCP-개발1팀/23 : 외국환 보고서 현행화 [개발] — 8h · 60%");
+        assertThat(md).contains("- NHNKCP-개발1팀/23 : 외국환 보고서 현행화 [개발] — 8h · 1일 · 60%");
         assertThat(md).contains("  - 테스트예정일: 2026-08-10");
         assertThat(md).contains("  - 비고: 외부 연계사 일정으로 테스트 1주 연기");
-        assertThat(md).contains("- NHNKCP-개발1팀/26 : 2차인증 프로세스 개선 [설계] — 1h · 5% (이월)");
-        assertThat(md).contains("- 파트 주간회의 — 1h");
-        assertThat(md).contains("- 2026-08-01 — 8h");
+        assertThat(md).contains("- NHNKCP-개발1팀/26 : 2차인증 프로세스 개선 [설계] — 1h · 1일 · 5% (이월)");
+        assertThat(md).contains("- 파트 주간회의 — 1h\n");
+        assertThat(md).contains("- 2026-08-01 — 8h\n");
         assertThat(md).contains("**합계: 18h / 0.45 맨위크**");
+
+        // 값이 없는 일정 필드는 아예 줄이 나오지 않는다(devDoneDate/deployDate 미설정).
+        assertThat(md).doesNotContain("개발완료일");
+        assertThat(md).doesNotContain("배포예정일");
+        // JSON 블록은 더 이상 붙지 않는다 — 순수 마크다운 본문만 나간다.
+        assertThat(md).doesNotContain("<!--DATA");
     }
 
     @Test
-    void JSON_데이터_블록을_파싱할_수_있다() throws Exception {
-        String md = exportSample();
-
-        String json = md.substring(md.indexOf("<!--DATA\n") + "<!--DATA\n".length(), md.indexOf("\nDATA-->"));
-        JsonNode root = new ObjectMapper().readTree(json);
-
-        assertThat(root.get("schemaVersion").asInt()).isEqualTo(1);
-        assertThat(root.get("name").asText()).isEqualTo("정준호");
-        assertThat(root.get("weekLabel").asText()).isEqualTo("8월 1주");
-        assertThat(root.get("weekStart").asText()).isEqualTo("2026-07-31");
-        assertThat(root.get("totalHours").asLong()).isEqualTo(18);
-        assertThat(root.get("totalManWeek").asDouble()).isEqualTo(0.45);
-        assertThat(root.get("items")).hasSize(4);
-
-        JsonNode projectItem = root.get("items").get(0);
-        assertThat(projectItem.get("group").asText()).isEqualTo("project");
-        assertThat(projectItem.get("project").asText()).isEqualTo("GTPP");
-        assertThat(projectItem.get("phase").asText()).isEqualTo("개발");
-        assertThat(projectItem.get("days").asInt()).isEqualTo(1);
-        assertThat(projectItem.get("devDoneDate").isNull()).isTrue();
-
-        JsonNode etcItem = root.get("items").get(2);
-        assertThat(etcItem.get("group").asText()).isEqualTo("etc");
-        assertThat(etcItem.has("completion")).isFalse();
-
-        JsonNode vacationItem = root.get("items").get(3);
-        assertThat(vacationItem.get("date").asText()).isEqualTo("2026-08-01");
-        assertThat(vacationItem.get("endDate").isNull()).isTrue();
-    }
-
-    @Test
-    void 기간_휴가는_시작일과_종료일을_함께_표기한다() throws Exception {
+    void 기간_휴가는_시작일과_종료일을_함께_표기한다() {
         AppSettings settings = new AppSettings("정준호", "파트원", "NHNKCP-개발1팀");
         WeeklyReport report = new WeeklyReport("8월 1주", LocalDate.of(2026, 7, 31), LocalDate.of(2026, 8, 6));
 
@@ -119,11 +93,6 @@ class MdExportServiceTest {
         String md = service.export(settings, report);
 
         assertThat(md).contains("- 2026-08-05 ~ 2026-08-06 — 16h");
-
-        String json = md.substring(md.indexOf("<!--DATA\n") + "<!--DATA\n".length(), md.indexOf("\nDATA-->"));
-        JsonNode item = new ObjectMapper().readTree(json).get("items").get(0);
-        assertThat(item.get("date").asText()).isEqualTo("2026-08-05");
-        assertThat(item.get("endDate").asText()).isEqualTo("2026-08-06");
     }
 
     @Test
@@ -140,7 +109,7 @@ class MdExportServiceTest {
         report.addItem(item);
 
         assertThat(service.export(settings, report))
-                .contains("- NHNKCP-개발1팀/23 : GTPP [개발] — 8h · 60%");
+                .contains("- NHNKCP-개발1팀/23 : GTPP [개발] — 8h · 1일 · 60%");
     }
 
     @Test

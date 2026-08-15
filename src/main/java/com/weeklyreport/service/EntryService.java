@@ -5,7 +5,9 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ import com.weeklyreport.domain.enums.Phase;
 import com.weeklyreport.domain.enums.ReportStatus;
 import com.weeklyreport.repository.AppSettingsRepository;
 import com.weeklyreport.repository.ProjectRepository;
+import com.weeklyreport.repository.ReportItemRepository;
 import com.weeklyreport.repository.WeeklyReportRepository;
 import com.weeklyreport.web.dto.ItemForm;
 
@@ -42,19 +45,22 @@ public class EntryService {
     private final CarryOverService carryOverService;
     private final ManWeekService manWeekService;
     private final TicketNumberService ticketNumberService;
+    private final ReportItemRepository reportItemRepository;
 
     public EntryService(WeeklyReportRepository weeklyReportRepository,
                          ProjectRepository projectRepository,
                          AppSettingsRepository appSettingsRepository,
                          CarryOverService carryOverService,
                          ManWeekService manWeekService,
-                         TicketNumberService ticketNumberService) {
+                         TicketNumberService ticketNumberService,
+                         ReportItemRepository reportItemRepository) {
         this.weeklyReportRepository = weeklyReportRepository;
         this.projectRepository = projectRepository;
         this.appSettingsRepository = appSettingsRepository;
         this.carryOverService = carryOverService;
         this.manWeekService = manWeekService;
         this.ticketNumberService = ticketNumberService;
+        this.reportItemRepository = reportItemRepository;
     }
 
     // ---------- 주차 조회/생성 ----------
@@ -245,6 +251,109 @@ public class EntryService {
                 .map(WeeklyReport::getTotalManWeek)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .divide(BigDecimal.valueOf(Math.min(recent.size(), RECENT_WEEKS_FOR_AVERAGE)), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 최근 제출된 {@code weeks}주치 평균 맨위크. 대시보드의 "최근 2주 평균 맨위크"가 쓴다.
+     *
+     * <p>위 {@link #recentAverageManWeek()}(4주, 작성 화면)와 <b>기간만 다른 별개의 지표</b>다 —
+     * 같은 카드가 화면마다 다른 기간을 뜻하면 혼란스러우므로 두 화면의 숫자를 합치지 않는다.
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal recentAverageManWeek(int weeks) {
+        return averageManWeek(recentSubmittedReports(weeks, null));
+    }
+
+    /**
+     * 주어진 주들의 평균 맨위크. 대시보드는 평균과 그 <b>모집단 목록</b>을 함께 그리므로
+     * 목록을 한 번만 조회해 이 메서드로 평균을 낸다(같은 조회를 두 번 하지 않기 위해).
+     * 비어 있으면 0.00 — 화면에서 항상 소수 두 자리로 보이도록 자릿수를 맞춰둔다.
+     */
+    @Transactional(readOnly = true)
+    public BigDecimal averageManWeek(List<WeeklyReport> reports) {
+        if (reports.isEmpty()) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        return reports.stream()
+                .map(WeeklyReport::getTotalManWeek)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(reports.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * 평균의 모집단이 된 주들(최신순). 화면에서 "어느 주로 낸 평균인지" 검증할 수 있어야 한다는
+     * 설계 결정 때문에 평균과 함께 내역도 노출한다.
+     *
+     * @param excludeWeekStart 이 주는 모집단에서 뺀다(대시보드는 "이번 주"를 제외한 과거만 본다). null이면 제외 없음.
+     */
+    @Transactional(readOnly = true)
+    public List<WeeklyReport> recentSubmittedReports(int weeks, LocalDate excludeWeekStart) {
+        return weeklyReportRepository.findByStatusOrderByWeekStartDesc(ReportStatus.SUBMITTED).stream()
+                .filter(r -> excludeWeekStart == null || !excludeWeekStart.equals(r.getWeekStart()))
+                .limit(weeks)
+                .toList();
+    }
+
+    /**
+     * "진행중인 프로젝트" 목록. 대시보드와 작성 탭이 같은 이름의 지표(진행중 프로젝트 수)를
+     * 서로 다른 기준으로 계산하던 것을 이 메서드 하나로 통일했다({@code DashboardController}가
+     * 원래 갖고 있던 로직을 그대로 옮긴 것 — 판정 기준 자체는 바뀌지 않았다).
+     *
+     * <p>판정 기준: {@code Project.active == true} 그리고 가장 최근 보고된 진행률이 100% 미만
+     * (아직 보고된 적 없는 활성 프로젝트는 진행률 0%로 포함된다). 진행률은 그 주 세부 항목
+     * 완료율의 평균이다(최댓값 아님 — 설계 100% + 개발 20%짜리 프로젝트가 100%로 보이면 안 된다).
+     */
+    @Transactional(readOnly = true)
+    public List<ProjectProgress> activeProjectsWithProgress() {
+        Map<Long, List<ReportItem>> latestItems = new HashMap<>();
+        Map<Long, LocalDate> latestWeek = new HashMap<>();
+        Map<Long, String> latestLabel = new HashMap<>();
+        for (ReportItem item : reportItemRepository.findActiveProjectItemsRecentFirst()) {
+            if (item.getGroup() != Group.PROJECT || item.getProject() == null) {
+                continue;
+            }
+            Long projectId = item.getProject().getId();
+            LocalDate weekStart = item.getWeeklyReport().getWeekStart();
+            LocalDate known = latestWeek.get(projectId);
+            if (known == null) {
+                latestWeek.put(projectId, weekStart);
+                latestLabel.put(projectId, item.getWeeklyReport().getWeekLabel());
+                latestItems.put(projectId, new ArrayList<>(List.of(item)));
+            } else if (known.equals(weekStart)) {
+                latestItems.get(projectId).add(item);
+            }
+        }
+
+        List<ProjectProgress> projects = new ArrayList<>();
+        for (Project project : projectRepository.findByActiveTrueOrderByNameAsc()) {
+            List<ReportItem> items = latestItems.getOrDefault(project.getId(), List.of());
+            int completion = averageCompletion(items);
+            if (completion >= 100) {
+                continue;
+            }
+            projects.add(new ProjectProgress(project, completion, latestLabel.get(project.getId())));
+        }
+        return projects;
+    }
+
+    /** 완료율이 입력된 항목만으로 평균을 낸다. 하나도 없으면 0%. */
+    private int averageCompletion(List<ReportItem> items) {
+        List<Integer> filled = items.stream()
+                .map(ReportItem::getCompletion)
+                .filter(c -> c != null)
+                .toList();
+        if (filled.isEmpty()) {
+            return 0;
+        }
+        int sum = filled.stream().mapToInt(Integer::intValue).sum();
+        return Math.round((float) sum / filled.size());
+    }
+
+    /**
+     * 화면 전용 묶음 — 프로젝트 + 그 프로젝트의 최근 진행률 + 그 진행률을 읽어온 주차 라벨.
+     * (한 번도 보고된 적 없는 프로젝트는 {@code lastWeekLabel}이 null이다.)
+     */
+    public record ProjectProgress(Project project, int completion, String lastWeekLabel) {
     }
 
     // ---------- 제출 ----------

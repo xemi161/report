@@ -134,14 +134,19 @@
   .row:last-child{border-bottom:none;}
   .row-main{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
   /* row-main/simple-row = 메인 목록 행(문자처럼 보이다 hover/focus 시 강조). row-detail은 별도 규칙(항상 보이는 박스형) — 서로 안 겹치게 범위를 분리 */
+  /* .daily-item의 시간 칸도 같은 스코프에 넣는다 — 일일 기록의 투입시간은 주간보고 항목의
+     .hours-input과 "똑같은 컴포넌트"여야 한다(56px·우측정렬·h 단위·평소엔 텍스트, 만질 때만 강조). */
   .row-main input[type=text], .row-main input[type=number], .row-main input[type=date], .row-main select,
-  .simple-row input[type=text], .simple-row input[type=number], .simple-row input[type=date], .simple-row select{
+  .simple-row input[type=text], .simple-row input[type=number], .simple-row input[type=date], .simple-row select,
+  .daily-item input[type=number]{
     border:1px solid transparent; border-radius:8px; padding:5px 7px; font-size:13px; transition:background .12s,border-color .12s;
   }
   .row-main input:hover, .row-main select:hover,
-  .simple-row input:hover, .simple-row select:hover{background:var(--surface-sunken);}
+  .simple-row input:hover, .simple-row select:hover,
+  .daily-item input[type=number]:hover{background:var(--surface-sunken);}
   .row-main input:focus, .row-main select:focus,
-  .simple-row input:focus, .simple-row select:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+  .simple-row input:focus, .simple-row select:focus,
+  .daily-item input[type=number]:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
   .ticket{
     width:132px; color:var(--text-muted); font-size:12.5px;
     border:1px solid transparent; border-radius:8px; padding:5px 7px; background:transparent;
@@ -238,6 +243,339 @@
   .low-stripe{width:4px; align-self:stretch; background:var(--danger-border); border-radius:2px;}
   .chev{flex-shrink:0; color:var(--text-faint);}
 
+  /* ---------- dashboard — 벤토 그리드 (v7) ---------- */
+  /* v6까지 대시보드는 "hero 한 줄 + 좌우 2컬럼 스택"이었다. 카드가 전부 비슷한 크기라
+     화면이 균일한 격자로 읽혔고("눈에 탁 띄지 않는다"는 피드백), 무엇이 중요한지를 배치가 말해주지 못했다.
+     v7은 같은 정보를 **크기가 엇갈리는 모자이크(벤토)**로 다시 깐다.
+
+     제약: 색으로 참신함을 만들지 않는다 — 다크모드 없음, 새 oklch 토큰 없음, 연회색 배경 + 흰 카드 그대로.
+     참신함은 오직 (1) 타일 면적 차이 (2) 밀도(간격 22→14, 패딩 26/28→20/22)
+     (3) 작은 타일에 들어가는 거대 숫자(40px)의 대비에서 나온다.
+
+     12컬럼 × 62px 고정 행. 고정 행이어야 "4행짜리 큰 타일 옆에 2행짜리 작은 타일 둘"처럼
+     행을 쪼개 쓰는 배치가 가능하다(행 높이가 내용에 따라 늘면 모자이크가 무너진다).
+     대신 내용이 넘칠 수 있는 목록 타일은 .tile-body가 안에서 스크롤한다.
+
+     배치는 auto-flow(sparse)에 맡긴다 — 아래 순서로 넣으면 다음 모자이크가 나온다.
+     순서: hero → 지표 4 → 오늘 한 일 → TODO → 맨위크 → 진행중 프로젝트
+        ┌───────────────┬──────┬──────┐
+        │ 이번 주 (6×4)  │ 시간  │ 맨위크│   작은 타일 = 3×2
+        │               ├──────┼──────┤
+        │               │ 지남  │ 진행중│
+        ├───────────────┴──┬───┴──────┤
+        │ 오늘 한 일 (8×6)   │  TODO    │
+        ├─────────┬─────────┤ (4×10)   │
+        │ 맨위크4×4│진행중4×4 │          │
+        └─────────┴─────────┴──────────┘
+     좌측(8칸) 6+4=10행, 우측 TODO 10행 → 두 덩어리가 같은 줄에서 끝난다.
+     ⚠️ 타일을 넣는 순서를 바꾸면 이 계산이 깨진다(grid-auto-flow는 dense가 아니다). */
+  .bento{display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); grid-auto-rows:62px; gap:14px;}
+  .bento > *{min-width:0; min-height:0;}
+  .bento .card{padding:20px 22px;}
+  .dash-wrap{display:flex; flex-direction:column; gap:14px;}
+
+  /* 타일 크기 배정 = 정보의 무게. 매일 손대는 것(오늘 한 일·TODO)이 가장 크고,
+     한눈에 확인만 하는 지표는 가장 작다. 주 단위로 훑는 추세(맨위크·진행중)는 그 중간. */
+  .t-hero  {grid-column:span 6; grid-row:span 4;}
+  .t-metric{grid-column:span 3; grid-row:span 2;}
+  .t-daily {grid-column:span 8; grid-row:span 6;}
+  .t-todo  {grid-column:span 4; grid-row:span 10;}
+  .t-mw    {grid-column:span 4; grid-row:span 4;}
+  .t-proj  {grid-column:span 4; grid-row:span 4;}
+  /* 마지막 줄(과거 보고서)만 내용 높이로 둔다 — 목록 길이가 보고서 개수에 따라 변하므로 62px 격자에 못 박지 않는다.
+     같은 12컬럼·같은 gap을 쓰므로 위 모자이크와 한 판으로 읽힌다. */
+  .bento-foot{grid-auto-rows:auto;}
+  .t-hist  {grid-column:1 / -1;}
+
+  /* 고정 높이 타일 안에서 넘치는 목록만 스크롤한다 — 머리(제목·입력줄)와 발(요약·안내)은 늘 보인다.
+     좌우 여백을 음수 마진으로 되돌려 스크롤 영역이 포커스 링을 자르지 않게 한다. */
+  .tile{display:flex; flex-direction:column;}
+  .tile-body{flex:1; min-height:0; overflow:auto; margin:0 -6px; padding:0 6px;}
+
+  /* 작은 지표 타일 — 큰 hero 옆에서 숫자만 압축해 받는 자리.
+     좁은 면적 × 40px 숫자의 대비가 이 화면의 "탁 띄는" 지점이다(색이 아니라 크기로). */
+  .metric{justify-content:space-between; gap:6px;}
+  .bento .card.metric{padding:16px 18px;}
+  .metric .v{font-size:40px; font-weight:700; letter-spacing:-.035em; line-height:1; display:flex; align-items:baseline; gap:3px;}
+  .metric .v u{font-size:14px; font-weight:600; color:var(--text-muted); text-decoration:none;}
+  .metric .s{font-size:11.5px; color:var(--text-muted);}
+  .metric.low .v{color:var(--danger-fg);}
+
+  /* 과거 보고서 = 모자이크 아래를 받치는 가로로 긴 타일.
+     타일 안에 카드(.hist-card)를 그대로 넣으면 둥근 상자가 이중으로 겹치므로,
+     이 안에서만 테두리를 떼고 얇은 구분선으로 바꾼다(히스토리 탭의 같은 컴포넌트는 그대로). */
+  .dash-list.flush{gap:0;}
+  .dash-list.flush .hist-card{border:none; border-radius:12px; box-shadow:none;}
+  .dash-list.flush .hist-card + .hist-card{border-top:1px solid var(--border-soft);}
+  .dash-list.flush .hist-card:hover{background:var(--surface-sunken);}
+  .dash-list.flush .hist-summary{padding:14px 10px;}
+
+  /* 반응형: 폭이 모자라면 모자이크를 접는다.
+     - ~1180px: 6컬럼. 행 스팬을 풀어(grid-row:auto) 타일이 제 내용 높이를 갖게 하고,
+       고정 높이가 사라지므로 안쪽 스크롤도 끈다(스크롤 영역 안에 스크롤이 생기지 않게).
+       지표 타일만 3칸씩 남겨 2×2 블록을 유지한다 — 이게 남아 있어야 벤토의 흔적이 유지된다.
+     - ~700px: 2컬럼. 지표는 2개씩, 나머지는 전폭. */
+  @media (max-width:1180px){
+    .bento{grid-template-columns:repeat(6, minmax(0,1fr)); grid-auto-rows:auto;}
+    .bento > *{grid-row:auto !important;}
+    .t-hero, .t-daily, .t-todo{grid-column:span 6;}
+    .t-metric, .t-mw, .t-proj{grid-column:span 3;}
+    .tile-body{overflow:visible; margin:0; padding:0;}
+  }
+  @media (max-width:700px){
+    .bento{grid-template-columns:repeat(2, minmax(0,1fr));}
+    .t-hero, .t-daily, .t-todo, .t-mw, .t-proj{grid-column:span 2;}
+    .t-metric{grid-column:span 1;}
+  }
+
+  .section-head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .section-head h2{font-size:15px; font-weight:700; margin:0; letter-spacing:-.01em;}
+  .link-more{
+    border:none; background:transparent; color:var(--text-muted); cursor:pointer;
+    font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:9px;
+    display:flex; align-items:center; gap:5px; transition:background .12s,color .12s;
+  }
+  .link-more:hover{background:var(--surface-sunken); color:var(--accent);}
+  .link-more:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+
+  /* 이번 주 타일 = 벤토에서 가장 큰 면적이자 화면의 유일한 강한 CTA 자리(accent .btn은 화면에 하나만).
+     v6까지 여기 있던 숫자(시간/맨위크/건수)는 옆의 작은 지표 타일로 옮겼다 — 큰 타일이 숫자를 붙들고 있으면
+     작은 타일이 압축 요약을 할 일이 없어져 모자이크가 성립하지 않는다.
+     대신 큰 면적은 "이번 주가 어떻게 흘러갔나"를 보여주는 요일 스트립이 채운다(큰 타일이 텅 비면 안 된다). */
+  .hero{gap:16px; justify-content:space-between;}
+  .hero-top{display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap;}
+  .hero-left{display:flex; flex-direction:column; gap:6px; min-width:0;}
+  .kicker{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint);}
+  .hero-title{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  /* 20 → 30px: 타일이 커진 만큼 제목도 커져야 "큰 타일"이 여백이 아니라 위계로 읽힌다 */
+  .hero-title .wk{font-size:30px; font-weight:700; letter-spacing:-.03em; line-height:1.1;}
+  .hero-title .rng, .hero-sub{font-size:12.5px; color:var(--text-muted);}
+  .hero-note{font-size:12.5px; color:var(--text-muted); margin:0; max-width:460px;}
+
+  /* 요일 스트립 = 이 주(금~목) 7일의 기록 시간 미니 막대.
+     새 색을 쓰지 않는다 — 채워진 날은 --accent, 빈 날은 --surface-sunken, 오늘만 --accent 테두리. */
+  .wk-days{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:8px; margin-top:auto;}
+  .wk-day{
+    border:1px solid var(--border-soft); border-radius:12px; padding:9px 5px 8px;
+    display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0;
+    transition:border-color .12s;
+  }
+  .wk-day .dw{font-size:11px; font-weight:700; color:var(--text-faint);}
+  .wk-day .bar-v{width:100%; height:38px; border-radius:8px; background:var(--surface-sunken); display:flex; align-items:flex-end; overflow:hidden;}
+  .wk-day .bar-v > i{display:block; width:100%; background:var(--accent); border-radius:8px;}
+  .wk-day .hh{font-size:11px; font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .wk-day.empty .hh{color:var(--text-faint); font-weight:400;}
+  .wk-day.today{border-color:var(--accent);}
+  .wk-day.today .dw{color:var(--accent-soft-fg);}
+
+  .badge.draft{background:var(--accent-soft); color:var(--accent-soft-fg);}
+  .badge.idle{background:var(--surface-sunken); color:var(--text-muted);}
+
+  .bar{height:5px; border-radius:999px; background:var(--surface-sunken); overflow:hidden;}
+  .bar > i{display:block; height:100%; border-radius:999px; background:var(--accent);}
+  .bar.low > i{background:var(--danger-border);}
+
+  .mw-big{font-size:34px; font-weight:700; letter-spacing:-.03em; line-height:1.15; margin-top:8px;}
+  .mw-big.low{color:var(--danger-fg);}
+  .mw-sub{font-size:12px; color:var(--text-muted); margin-top:3px;}
+  .mw-weeks{display:flex; flex-direction:column; gap:12px; margin-top:18px; padding-top:16px; border-top:1px solid var(--border-soft);}
+  .mw-week{display:flex; flex-direction:column; gap:6px;}
+  .mw-week .top{display:flex; justify-content:space-between; align-items:baseline; font-size:12px;}
+  .mw-week .top .lb{color:var(--text-muted);}
+  .mw-week .top .vl{font-weight:700;}
+  .mw-week .top .vl.low{color:var(--danger-fg);}
+
+  .proj-row{display:flex; flex-direction:column; gap:8px; padding:14px 0; border-bottom:1px solid var(--border-soft);}
+  .proj-row:last-child{border-bottom:none;}
+  .proj-top{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+  .proj-top .nm{font-size:13.5px; font-weight:600;}
+  .proj-top .tk{font-size:11.5px; color:var(--text-muted); background:var(--surface-sunken); padding:2px 9px; border-radius:999px;}
+  .proj-top .pc{margin-left:auto; font-size:13px; font-weight:700;}
+  .proj-meta{font-size:11.5px; color:var(--text-faint);}
+
+  .dash-list{display:flex; flex-direction:column; gap:12px;}
+
+  /* ---------- TODO 리스트(전망형) ---------- */
+  /* "오늘 한 일"(회고)과 정확히 반대 축의 목록이다. 절대 섞지 않는다:
+     - 완료해도 '한 일 기록'으로 넘어가지 않고, .md 내보내기에도 나가지 않는 순수 개인 목록이다.
+     - 그래서 이 블록 어디에도 "기록"이라는 단어를 쓰지 않는다("할 일"로 통일).
+     - 카드 제목은 **"TODO 리스트"로 확정**(v6의 "앞으로 할 일"은 사용자가 기각). 한국어 제목끼리
+       "한 일 / 할 일"로 한 글자 차이가 나던 문제도 영문 TODO가 자연히 해결한다.
+     자리는 벤토 우측의 세로로 가장 긴 타일(4×10). 폭이 352px(내부 296px)이라 날짜를 행마다 반복할 수 없어서,
+     날짜는 좌측 패널이 이미 쓰는 .day-group/.day-head(날짜 헤더 + 그 아래 항목들)를 그대로 재사용해
+     그룹 헤더가 대신 받는다. 기한이 지난 것들만 날짜가 제각각이라 그 그룹에서만 행마다 날짜 칩을 붙인다. */
+  .day-head.over{color:var(--danger-fg);}
+  .day-head .n{margin-left:auto; font-weight:700; letter-spacing:0;}
+
+  .todo-row{border-bottom:1px solid var(--border-soft); padding:6px 0;}
+  .todo-row:last-child{border-bottom:none;}
+  .todo-item{display:flex; align-items:flex-start; gap:6px;}
+  .todo-check{flex:none; width:15px; height:15px; margin:4px 0 0; accent-color:var(--accent); cursor:pointer;}
+  /* 기한 지난 항목만 행 앞에 날짜 칩 — "얼마나 밀렸나"가 이 그룹에서만 항목마다 다르기 때문 */
+  .t-wrap{flex:1; min-width:0; display:flex; flex-wrap:wrap; align-items:flex-start; gap:4px;}
+  .t-wrap .od{
+    flex:none; margin-top:4px; font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:999px;
+    background:var(--danger-bg); color:var(--danger-fg); font-variant-numeric:tabular-nums;
+  }
+  /* 좁은 카드라 할 일 문장이 잘리면 목록의 의미가 없다 — 좌측 기록과 같은 줄바꿈 textarea(.d-txt) 규칙 */
+  .t-txt{
+    flex:1; min-width:80px; display:block; resize:none; overflow:hidden;
+    border:1px solid transparent; border-radius:8px; padding:3px 5px; font-size:13px; line-height:1.45;
+    background:transparent; transition:background .12s,border-color .12s;
+  }
+  .t-txt:hover{background:var(--surface-sunken);}
+  .t-txt:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+  .todo-row.done .t-txt{text-decoration:line-through; color:var(--text-faint);}
+
+  /* 우선순위 = 표시와 편집을 겸하는 pill 하나(클릭하면 높음→보통→낮음 순환).
+     기본값 '보통'은 조용하게, 벗어난 '높음'만 색이 붙는다 — 목록 전체가 배지밭이 되지 않게. */
+  .prio{
+    flex:none; margin-top:3px; border:1px solid transparent; border-radius:999px; padding:2px 7px;
+    font-size:10.5px; font-weight:700; background:transparent; color:var(--text-faint); cursor:pointer;
+    white-space:nowrap; transition:background .12s,color .12s,border-color .12s;
+  }
+  .prio:hover{background:var(--surface-sunken); color:var(--text-muted);}
+  .prio:focus-visible{border-color:var(--accent); outline:none;}
+  .prio.high{background:var(--warn-bg); color:var(--warn-fg);}
+  .prio.mid{color:var(--text-muted);}
+  /* 달력 버튼은 .icon-btn.chevron의 중립 hover만 빌려 쓴다 — 회전(펼침 표시)은 달력 아이콘엔 안 맞아 끈다 */
+  .todo-item .icon-btn{margin-top:1px;}
+  .todo-item .icon-btn.chevron.open{background:var(--surface-sunken); color:var(--text);}
+  .todo-item .icon-btn.chevron.open svg{transform:none;}
+  /* 기한 변경은 자주 하는 조작이 아니라 행을 늘리지 않는다 — 보고 항목의 일정 상세(.row-detail)와 같은 접이식 */
+  .todo-row .row-detail{margin-top:6px; padding:10px 12px;}
+  .todo-row .row-detail label.inline input{width:150px;}
+
+  .todo-foot{display:flex; margin-top:8px;}
+  .todo-done{margin-top:8px; padding-top:6px; border-top:1px solid var(--border-soft);}
+
+  /* ---------- 일일 기록(한 일) ---------- */
+  /* 회고적 기록 — "앞으로 할 일"이 아니라 "한 일"만 담는다(일정관리 아님).
+     ⚠️ v3에서 성격이 바뀌었다: 주간보고로 올리는 체크박스·대상 선택·반영 상태가 전부 사라졌고,
+     이 목록은 주간보고를 쓸 때 옆에 두고 **보는 참고 자료**다. 프로그램은 기록을 옮겨주지 않는다.
+     그래서 기록에 가능한 조작은 추가 / 수정 / 삭제 셋뿐이고, 항목당 부가 UI(체크·화살표·칩)가 없다. */
+  /* 좌우 분할이 켜지면 페이지 폭을 넓힌다 — 그대로 두면 항목 행(티켓·제목·구분·시간·일수·진행률·배지)이
+     오른쪽 컬럼에서 두 줄로 접혀 "한 줄 = 한 항목"이라는 이 화면의 시각 규칙이 깨진다.
+
+     v5(2026-08-14): 사용자 요청 "이번 주에 한 일 영역이 지금보다 100% 더 컸으면" → 패널 340 → **680px**.
+     우측 컬럼의 하한은 v3에서 실측한 항목 행 최소 폭에서 나온다:
+        배지 없이 752px / 완료+이월 배지가 같이 붙으면 860px(이월 배지는 초안 생성 시 항목마다
+        붙는 정상 상태라 예외 취급 불가) + 카드 좌우 패딩 56  =>  **우측 컬럼 916px가 하한**
+        56(main 패딩) + 680(패널) + 18(gap) + 916(우측 하한) = 1670px
+     그래서 확장 폭을 1400 → 1670px으로 올린다.
+
+     다만 1670px은 모든 화면에 있는 폭이 아니다 — 1920 모니터를 Windows 125% 배율로 쓰면 CSS 폭은
+     1536px뿐이다(실측: 이 개발기의 주 모니터 2560px / 보조 노트북 1536px). 그래서 패널 폭을 고정하지 않고
+     **우측 916px를 먼저 보장한 뒤 남는 폭을 전부 패널이 가져가는** 유동 규칙으로 쓴다:
+        minmax(0,680px)   패널은 680px까지만 커지고, 폭이 모자라면 자기가 대신 줄어든다
+        minmax(916px,1fr) 우측 컬럼은 916px 밑으로 절대 안 내려간다(= 행이 두 줄로 안 접힌다)
+     결과 → 뷰포트 1670px↑ : 패널 680px(요청대로 정확히 2배) / 1536px 노트북 : 530px(+56%) / 그 사이는 연속.
+     행이 접히는 대신 패널이 줄어드는 것이므로, v4보다 시각 규칙이 오히려 더 넓은 폭 구간에서 지켜진다.
+     1280px 미만에서는 패널이 290px 밑으로 내려가 v3에서 검증한 하한(300px)도 못 지키므로 세로 스택으로 넘긴다
+     (스택되면 좌우 폭 경쟁이 없어져 패널은 그 폭 그대로 한 줄을 다 쓴다 — 680px 상한은 분할일 때만 의미가 있다). */
+  body.wide main{max-width:1670px;}
+  body.wide .header-inner{max-width:1650px;}
+  .split{display:grid; grid-template-columns:minmax(0,680px) minmax(916px,1fr); gap:18px; align-items:start;}
+  .split-main{display:flex; flex-direction:column; gap:22px; min-width:0;}
+  /* 작성 폼이 길어도 왼쪽 기록은 따라온다 — 폼 어느 칸을 채우는 중이든 그 주에 뭘 했는지 보여야 한다 */
+  .daily-panel{position:sticky; top:84px; max-height:calc(100vh - 108px); overflow:auto; padding:20px 20px 18px;}
+  @media (max-width:1280px){
+    .split{grid-template-columns:1fr;}
+    .daily-panel{position:static; max-height:none; overflow:visible;}
+  }
+
+  .daily-head{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+
+  .day-group{margin-top:14px;}
+  .day-head{
+    display:flex; align-items:center; gap:8px; padding-bottom:5px; border-bottom:1px solid var(--border-soft);
+    font-size:10.5px; font-weight:700; letter-spacing:.04em; color:var(--text-faint);
+  }
+  .day-head .today-chip{background:var(--accent-soft); color:var(--accent-soft-fg); padding:1px 7px; border-radius:999px; font-size:10px;}
+  /* 그날 기록한 시간의 합. 시간은 선택 입력이라 합계가 0이면 아예 안 그린다(0h를 들이밀어 입력을 압박하지 않는다).
+     날짜 헤더에 붙는 이유: "그날 8시간 중 몇 시간이 잡혔나"가 한눈에 보여야 기록이 빠진 날을 스스로 알아챈다. */
+  /* v5: 패널이 넓어지면서 날짜 라벨과 합계가 멀리 떨어지게 됐다 — 그냥 오른쪽 끝에 붙이면 둘의 관계가 흐려진다.
+     삭제 버튼(25) + gap(6) + 단위 여백(2)만큼 안쪽으로 들여 **아래 시간 칸들의 'h'와 세로로 정확히 맞춘다.**
+     넓어진 폭이 여백이 아니라 "합계 = 이 열의 합"이라는 표 구조를 만들도록 쓰는 것. */
+  .day-head .day-sum{margin-left:auto; padding-right:33px; font-weight:700; letter-spacing:0; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+
+  .daily-item{display:flex; align-items:flex-start; gap:6px; padding:6px 0; border-bottom:1px solid var(--border-soft);}
+  .daily-item:last-child{border-bottom:none;}
+  .daily-item .icon-btn{margin-top:2px;}
+  /* 텍스트가 여러 줄로 감겨도 시간 칸과 단위는 첫 줄에 정렬된 채로 남는다 */
+  .daily-item .hours-input{flex:none; margin-top:1px;}
+  .daily-item .unit{margin-top:5px; flex:none;}
+  /* 읽으라고 있는 목록이므로 긴 기록이 잘리면 목적을 잃는다 — 한 줄 input 대신 줄바꿈되는 textarea.
+     평상시 테두리 없이 텍스트처럼 보이다 hover/focus 시 강조되는 기존 인풋 규칙은 그대로 따른다. */
+  .d-txt{
+    flex:1; min-width:0; display:block; resize:none; overflow:hidden;
+    border:1px solid transparent; border-radius:8px; padding:4px 6px; font-size:13px; line-height:1.45;
+    background:transparent; transition:background .12s,border-color .12s;
+  }
+  .d-txt:hover{background:var(--surface-sunken);}
+  .d-txt:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+
+  .daily-foot{
+    margin-top:16px; padding-top:13px; border-top:1px solid var(--border-soft);
+    display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;
+    font-size:12px; color:var(--text-muted);
+  }
+  .daily-foot b{color:var(--text); font-weight:700;}
+  .daily-note, .todo-note{font-size:11.5px; color:var(--text-faint); margin:10px 0 0; line-height:1.5;}
+
+  /* 기록 추가 입력 — 여기만 "텍스트처럼 보이는 인풋" 규칙의 예외(설계 근거 참고).
+     발견 과정 없이 바로 타이핑을 시작해야 하는 캡처 지점이라 "여기 입력하는 곳"이 먼저 읽혀야 한다. */
+  .quick-add{display:flex; gap:8px; align-items:center; margin:14px 0 2px; flex-wrap:wrap;}
+  .quick-add input{
+    flex:1; min-width:150px; border:1px solid var(--border-soft); border-radius:10px; padding:9px 12px;
+    background:var(--surface-sunken); font-size:13px; transition:background .12s,border-color .12s;
+  }
+  .quick-add input:focus{border-color:var(--accent); background:var(--surface); outline:none;}
+  .quick-add .ghost{margin-top:0;}
+  /* 캡처 지점의 시간 칸도 선택 입력이다 — placeholder를 비워두고 flex에서 빼내 텍스트 칸이 계속 주인공으로 남게 한다 */
+  .quick-add input.qa-hours{flex:0 0 62px; min-width:0; text-align:right; padding:9px 8px; font-variant-numeric:tabular-nums;}
+  .quick-add .qa-unit{color:var(--text-faint); font-size:12.5px; margin-left:-3px;}
+  /* 지난 날짜에 빠뜨린 기록을 채울 때 쓰는 날짜 선택. 중립 pill — 액션이 아니라 입력 보조라 accent를 쓰지 않는다 */
+  .date-sel{
+    font-size:11.5px; font-weight:600; color:var(--text-muted); background:var(--surface-sunken);
+    border:1px solid var(--border-soft); border-radius:999px; padding:6px 9px; cursor:pointer; flex-shrink:0;
+  }
+  .date-sel:hover{border-color:var(--border);}
+  .date-sel:focus{border-color:var(--accent); outline:none;}
+  /* 한 일 기록 화면의 날짜 선택은 한 달을 넘나들 수 있어야 해서 select가 아니라 date input이다.
+     .quick-add input의 flex:1을 덮어써 텍스트 칸과 폭을 나눠 갖지 않게 고정한다. */
+  .quick-add input.date-sel{flex:0 0 auto; min-width:0; border-radius:999px; padding:6px 10px; font-size:12px;}
+
+  /* 대시보드 "오늘 한 일" 타일 — 머리(제목+캡처 입력줄)와 발(요약 줄)은 고정, 가운데 목록만 스크롤.
+     기록을 적는 자리가 스크롤 밖으로 밀려나면 이 타일의 존재 이유가 사라진다. */
+  .dash-daily .daily-foot{margin-top:12px;}
+  .daily-foot .foot-links{display:flex; align-items:center; gap:2px; margin-left:auto;}
+
+  /* ---------- 한 일 기록(전체 열람) — 히스토리 탭의 두 번째 뷰 ---------- */
+  /* 탭을 늘리지 않고 히스토리 안에 넣는다: 이 화면은 "지난 것을 훑는" 성격이 과거 보고서 목록과 같고,
+     헤더에 '히스토리'와 '기록'이 나란히 서면 한국어로 두 단어가 사실상 동의어라 구분이 안 된다.
+     축은 주(보고서)가 아니라 월이다 — 주 단위로 끊으면 이미 작성 화면 패널이 하는 일과 겹쳐 "쭉 보기"가 안 된다. */
+  .hist-switch{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .rec-toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  /* 헤더 주차 페이저는 '작성' 탭 전용이라 여기선 같은 컴포넌트를 화면 안에 놓는다(축이 다른 페이저가 헤더에 둘일 수는 없다) */
+  .pager.inline{background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:3px 4px;}
+  .pager.inline .label{min-width:112px;}
+  .rec-search{
+    position:relative; display:flex; align-items:center; gap:7px; min-width:220px;
+    border:1px solid var(--border-soft); border-radius:10px; padding:8px 12px; background:var(--surface);
+    color:var(--text-faint); transition:border-color .12s;
+  }
+  .rec-search:focus-within{border-color:var(--accent); color:var(--text-muted);}
+  .rec-search input{border:none; outline:none; background:transparent; flex:1; min-width:0; font-size:13px;}
+  .rec-search .clear{margin-right:-4px;}
+  /* 검색 중에는 월 범위를 무시하고 전체 기간에서 찾는다 — 그 사실을 목록 위에 한 줄로 못박는다 */
+  .rec-scope{
+    display:flex; align-items:center; gap:8px; background:var(--accent-soft); color:var(--accent-soft-fg);
+    border-radius:12px; padding:9px 14px; font-size:12.5px; font-weight:600;
+  }
+  .rec-list > .day-group:first-child{margin-top:0;}
+  .rec-list .quick-add + .day-group{margin-top:6px;}
+
   /* ---------- modal ---------- */
   .modal-backdrop{
     position:fixed; inset:0; background:oklch(15% 0.02 260 / .45); display:none;
@@ -277,31 +615,36 @@
       <span class="name">주간업무보고</span>
       <span class="who">정준호 · 파트원</span>
     </div>
-    <div class="pager">
+    <!-- 주차 페이저는 "작성" 탭에서만 의미가 있다. 대시보드/히스토리에서는 visibility로만 숨겨
+         헤더 레이아웃이 탭 전환 때 흔들리지 않게 한다(display:none이면 폭이 튄다). -->
+    <div class="pager" id="pager">
       <button id="prevWeekBtn" aria-label="이전 주" title="이전 주">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <div class="label" id="weekLabel">8월 1주<span class="range" id="weekRange">07.31(금) ~ 08.06(목)</span></div>
+      <div class="label" id="weekLabel">8월 2주<span class="range" id="weekRange">08.07(금) ~ 08.13(목)</span></div>
       <button id="nextWeekBtn" aria-label="다음 주" title="다음 주">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
+    <!-- 히스토리 탭에서 건수를 뺐다(v4) — 이 탭이 '과거 보고서'와 '한 일 기록' 둘을 담게 되면서
+         헤더의 숫자 하나가 무엇의 건수인지 모호해졌다. 건수는 탭 안쪽 서브 세그먼트가 각각 들고 있다. -->
     <div class="seg" role="tablist">
-      <button id="tabWriteBtn" class="active" role="tab" aria-selected="true">작성</button>
-      <button id="tabHistoryBtn" role="tab" aria-selected="false">히스토리 · <span id="histCount">3</span></button>
+      <button id="tabDashBtn" class="active" role="tab" aria-selected="true">대시보드</button>
+      <button id="tabWriteBtn" role="tab" aria-selected="false">작성</button>
+      <button id="tabHistoryBtn" role="tab" aria-selected="false">히스토리</button>
     </div>
   </div>
 </header>
 
 <main>
-  <!-- ===================== 작성 ===================== -->
-  <section id="writeView" class="view active"></section>
+  <!-- ===================== 대시보드 (기본 진입) ===================== -->
+  <section id="dashboardView" class="view active"></section>
 
-  <!-- ===================== 히스토리 ===================== -->
-  <section id="historyView" class="view">
-    <div style="font-size:15px;font-weight:700;">과거 보고서</div>
-    <div id="historyList" style="display:flex;flex-direction:column;gap:12px;"></div>
-  </section>
+  <!-- ===================== 작성 ===================== -->
+  <section id="writeView" class="view"></section>
+
+  <!-- ===================== 히스토리 (과거 보고서 / 한 일 기록) ===================== -->
+  <section id="historyView" class="view"></section>
 </main>
 
 <div class="modal-backdrop" id="modalBackdrop">
@@ -331,6 +674,11 @@
   const ICON_CAL = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="2.5" y="3.5" width="11" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M2.5 6.5h11M5.5 2v2.5M10.5 2v2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
   const ICON_CHECK = '<svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const ICON_SPARK = '<svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+  const ICON_ARROW = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_PLUS = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M8 3.5v9M3.5 8h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  const ICON_NOTE_SM = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 3.5h9L19 7.5v13H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 11h7M9 14.5h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  const ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.2" stroke="currentColor" stroke-width="1.4"/><path d="M10.2 10.2L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+  const ICON_X = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 
   let uid = 900;
   const nextId = () => uid++;
@@ -352,12 +700,22 @@
   // 과거→현재→미래 순. 모든 주가(제출 여부와 무관하게) 항상 수정 가능하다는 요구사항 반영 —
   // "제출됨"은 잠금이 아니라 상태 표시일 뿐이며, 다시 내보내기도 항상 가능.
   const WEEKS = [
-    { status: "submitted", label: "7월 3주", range: "07.10(금) ~ 07.16(목)",
+    { status: "submitted", label: "7월 1주", start: "2026-06-26", range: "06.26(금) ~ 07.02(목)",
       projects: [],
-      dev: [ { id:1, ticket:"", title:"온보딩 문서 정리", phase:"개발", hours:6, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
+      dev: [ { id:901, ticket:"", title:"운영 이슈 대응", phase:"개발", hours:8, days:4, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
+      etc: [ { id:902, title:"파트 주간회의", hours:1 } ],
+      vacation: [] },
+    { status: "submitted", label: "7월 2주", start: "2026-07-03", range: "07.03(금) ~ 07.09(목)",
+      projects: [],
+      dev: [ { id:911, ticket:"", title:"결제 로그 분석", phase:"분석/설계", hours:7, days:4, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
+      etc: [ { id:912, title:"파트 주간회의", hours:1 } ],
+      vacation: [] },
+    { status: "submitted", label: "7월 3주", start: "2026-07-10", range: "07.10(금) ~ 07.16(목)",
+      projects: [],
+      dev: [ { id:1, ticket:"", title:"온보딩 문서 정리", phase:"개발", hours:8, days:4, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
       etc: [ { id:2, title:"파트 주간회의", hours:1 } ],
       vacation: [] },
-    { status: "submitted", label: "7월 4주", range: "07.17(금) ~ 07.23(목)",
+    { status: "submitted", label: "7월 4주", start: "2026-07-17", range: "07.17(금) ~ 07.23(목)",
       projects: [ { id:1, name:"GTPP", ticket:"NHNKCP-개발1팀/23", subitems:[
         { ...blankSubitem(), phase:"분석/설계", hours:4, days:1, completion:100 },
         { ...blankSubitem(), phase:"개발", hours:8, days:3, completion:40 }
@@ -365,7 +723,7 @@
       dev: [ { id:21, ticket:"", title:"레거시 배치 점검", phase:"개발", hours:4, days:1, completion:100, carriedOver:false, devDoneDate:"", testDate:"", deployDate:"", note:"" } ],
       etc: [ { id:22, title:"파트 주간회의", hours:1 } ],
       vacation: [ { id:23, date:"2026-07-21", hours:8 } ] },
-    { status: "submitted", label: "7월 5주", range: "07.24(금) ~ 07.30(목)",
+    { status: "submitted", label: "7월 5주", start: "2026-07-24", range: "07.24(금) ~ 07.30(목)",
       projects: [ { id:1, name:"GTPP", ticket:"NHNKCP-개발1팀/23", subitems:[
         { ...blankSubitem(), phase:"개발", hours:8, days:4, completion:55, testDate:"2026-08-03" }
       ] } ],
@@ -375,11 +733,10 @@
       ],
       etc: [ { id:34, title:"파트 주간회의", hours:1 }, { id:35, title:"신입 온보딩 지원", hours:2 } ],
       vacation: [] },
-    { status: "draft", label: "8월 1주", range: "07.31(금) ~ 08.06(목)",
-      stats: { avgManWeek: "0.61", activeProjects: 2 },
+    { status: "submitted", label: "8월 1주", start: "2026-07-31", range: "07.31(금) ~ 08.06(목)",
       projects: [
         { id: 1, name: "GTPP", ticket: "NHNKCP-개발1팀/23", subitems:[
-          { ...blankSubitem(), phase:"개발", hours:8, days:2, completion:60, testDate:"2026-08-10", note:"외부 연계사 일정으로 테스트 1주 연기" }
+          { ...blankSubitem(), phase:"개발", hours:4, days:2, completion:60, testDate:"2026-08-10", note:"외부 연계사 일정으로 테스트 1주 연기" }
         ]},
         { id: 2, name: "2차인증 리뉴얼", ticket: "NHNKCP-개발1팀/40", subitems:[
           { ...blankSubitem(), title:"로그인 기능", phase:"개발", hours:4, days:1, completion:30 },
@@ -394,13 +751,77 @@
         { id: 401, date: "2026-08-01", hours: 8 },
         { id: 402, date: "2026-08-05", endDate: "2026-08-06", period: true, hours: 16 }
       ] },
-    { status: "empty", label: "8월 2주", range: "08.07(금) ~ 08.13(목)" },
+    { status: "empty", label: "8월 2주", start: "2026-08-07", range: "08.07(금) ~ 08.13(목)" },
   ];
-  let weekIdx = 3; // "8월 1주" (작성중인 이번 주)
+  const CURRENT_IDX = WEEKS.length - 1;  // "8월 2주" = 오늘이 속한 주(아직 미작성)
+  let weekIdx = CURRENT_IDX;             // "작성" 탭이 현재 보고 있는 주
+
+  // ---------- 일일 기록(한 일) ----------
+  // 이 앱의 한 주는 금~목이다. 일일 기록의 소속 주도 날짜에서 이 규칙으로 파생시킨다(주 시작일을 따로 저장하지 않음).
+  const DEMO_TODAY = "2026-08-13";       // 데모 기준 '오늘' = 8월 2주의 마지막 날(목) = 보고 쓰는 날
+  const DOW = ["일","월","화","수","목","금","토"];
+  // 대시보드 "오늘 한 일" 타일에 펼쳐 보여줄 최근 일수(오늘 포함).
+  // v3: 3→4, v6: 4→5(카드가 옆 스택 높이만큼 늘어나 빈 여백이 생기는 걸 내용으로 채움).
+  // v7(벤토): 타일 높이가 8×6으로 고정되고 넘치는 만큼 .tile-body가 안에서 스크롤하므로,
+  // 이 값은 더 이상 "여백을 채우는 수단"이 아니라 순수하게 "며칠 전 것까지 손댈 수 있게 할까"의 값이다. 5 유지.
+  const DASH_RECENT_DAYS = 5;
+
+  function addDays(iso, n){
+    const d = new Date(iso + "T00:00:00");
+    d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  function weekDays(wk){ return Array.from({length:7}, (_, i) => addDays(wk.start, i)); }
+  function dayLabel(iso){
+    const d = new Date(iso + "T00:00:00");
+    return `${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} (${DOW[d.getDay()]})`;
+  }
+
+  /**
+   * 일일 기록 = { id, date, text, hours } — 이게 전부다.
+   * 주간보고 항목과의 연결(promoted/target/linked)은 v3에서 전부 제거했다.
+   * 사용자 판단: 자유 텍스트 한 줄이 프로젝트로 갈지 개발/기타로 갈지 정리하는 규칙이 모호하고,
+   * 요일마다 다르게 적은 기록을 하나의 보고 항목으로 합치는 개념도 모호하다 →
+   * 프로그램이 옮겨주지 않고, 사람이 이 목록을 **보면서** 오른쪽 폼에 직접 항목을 만든다.
+   *
+   * v4에서 hours 추가 — "나중에 기억 안 남"을 막는 게 이 기능의 존재 이유인데, 텍스트만 남기면
+   * 정작 보고에 필요한 숫자(시간)를 주 끝에 다시 기억해내야 했다. **선택 입력**이다:
+   * 매번 정확히 재는 게 아니라 대략치를 흘려 적어두는 자리라, 필수로 만들면 "가볍게 기록"이 깨진다.
+   * 그래서 아래 데모 데이터에도 시간이 빈 기록이 섞여 있다(정상 상태).
+   */
+  const DAILY = [
+    { id: nextId(), date:"2026-07-31", text:"2차인증 프로세스 개선 요건 정리", hours:1 },
+    { id: nextId(), date:"2026-08-03", text:"파트 주간회의", hours:1 },
+    { id: nextId(), date:"2026-08-04", text:"GTPP 배포 스크립트 점검", hours:2 },
+
+    { id: nextId(), date:"2026-08-07", text:"GTPP 결제 연동 테스트 케이스 작성", hours:3 },
+    { id: nextId(), date:"2026-08-07", text:"파트 주간회의", hours:1 },
+    { id: nextId(), date:"2026-08-10", text:"GTPP 결제 로그 분석 — 타임아웃 원인 확인", hours:4 },
+    { id: nextId(), date:"2026-08-10", text:"2차인증 리뉴얼 로그인 화면 검토", hours:2 },
+    { id: nextId(), date:"2026-08-11", text:"OTP 발송 모듈 개발", hours:5 },
+    { id: nextId(), date:"2026-08-11", text:"신입 온보딩 질문 대응", hours:"" },
+    { id: nextId(), date:"2026-08-12", text:"GTPP 외부 연계사 일정 협의", hours:1.5 },
+    { id: nextId(), date:"2026-08-12", text:"OTP 재발송 예외 처리", hours:3 },
+    { id: nextId(), date:"2026-08-13", text:"결제 배치 실패 건 재처리", hours:2 },
+  ];
+
+  let dailyVisible = true;     // 작성 화면 좌측 패널 표시 여부(안 쓰는 사람은 접어두고 폼을 넓게)
+
+  function dailyOf(wk){
+    const days = weekDays(wk);
+    return DAILY.filter(e => days.includes(e.date)).sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id);
+  }
+  function dailyEntry(id){ return DAILY.find(e => e.id === id) || null; }
+
+  /** 시간은 선택 입력이라 합계에 빈 값이 섞인다 — 0으로 취급해 더하고, 소수점 뒷자리 0은 떼서 보여준다(8.5h / 4h). */
+  function sumHours(list){ return list.reduce((n, e) => n + (Number(e.hours) || 0), 0); }
+  function fmtHours(n){ return Number(n.toFixed(2)).toString(); }
+  function hoursTag(list){ const h = sumHours(list); return h > 0 ? `${fmtHours(h)}h` : ""; }
 
   const $ = sel => document.querySelector(sel);
+  const dashboardView = $("#dashboardView");
   const writeView = $("#writeView");
-  const historyList = $("#historyList");
+  const historyView = $("#historyView");
 
   function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -532,8 +953,10 @@
   }
 
   /** 완료율<100인 단계만 다음 주로 이월 (기타/휴가 제외, dev 그룹 항목도 동일 규칙) — docs/project-handoff-summary.md 4.3 규칙 */
-  function buildCarriedOverDraft(fromWeek, label, range){
-    const draft = { status:"draft", label, range, stats:{avgManWeek:"0.00", activeProjects:0}, projects:[], dev:[], etc:[], vacation:[] };
+  function buildCarriedOverDraft(fromWeek, target){
+    // start(주 시작일)를 반드시 물려받아야 한다 — 일일 기록은 날짜로 주에 소속되므로 이게 빠지면 그 주 기록이 통째로 사라져 보인다
+    const draft = { status:"draft", label: target.label, range: target.range, start: target.start,
+                    projects:[], dev:[], etc:[], vacation:[] };
     (fromWeek?.projects || []).forEach(p => {
       const carriedSubitems = (p.subitems || [])
         .filter(i => (Number(i.hours) > 0 || Number(i.completion) > 0) && Number(i.completion) < 100)
@@ -545,26 +968,96 @@
     (fromWeek?.dev || []).filter(i => Number(i.completion) < 100).forEach(i => {
       draft.dev.push({ ...blankItem(), ticket: i.ticket, title: i.title, phase: i.phase, completion: i.completion, carriedOver: true });
     });
-    draft.stats.activeProjects = draft.projects.length;
     return draft;
+  }
+
+  // ---------- 일일 기록 패널 (작성 화면 좌측) ----------
+  /**
+   * 기록 한 줄 = 텍스트 + 시간 + 삭제. 그게 전부다.
+   * 체크박스·대상 셀렉트·반영 배지는 v3에서 제거했다 — 이 목록은 조작 대상이 아니라 참고 자료다.
+   * 텍스트는 input이 아니라 줄바꿈되는 textarea다: 좁은 패널에서 긴 기록이 잘리면 "보면서 쓴다"는 목적이 깨진다.
+   * 시간 칸은 주간보고 항목의 .hours-input을 그대로 쓴다(56px·우측정렬·h 단위) — 세 화면(대시보드/작성 패널/기록)
+   * 어디서 보든 같은 컴포넌트여야 "이건 저기 그 시간 칸이다"가 학습 없이 읽힌다.
+   */
+  function dailyRowHtml(entry){
+    return `
+      <div class="daily-item" data-daily="${entry.id}">
+        <textarea class="d-txt" rows="1" placeholder="한 일" data-daily-text>${esc(entry.text)}</textarea>
+        <input class="hours-input tabular" type="number" step="0.5" min="0" value="${entry.hours ?? ""}"
+               placeholder="-" title="투입시간 (선택)" data-daily-hours>
+        <span class="unit">h</span>
+        <button class="icon-btn" data-daily-remove title="기록 삭제">${ICON_TRASH}</button>
+      </div>`;
+  }
+
+  /** 날짜 헤더 + 그날 기록. 작성 화면 패널·대시보드 카드·한 일 기록 화면이 전부 이걸 쓴다(세 화면의 기록 블록은 동일 컴포넌트다). */
+  function dayGroupHtml(iso, entries, emptyText, labelFn){
+    const sum = hoursTag(entries);
+    return `
+      <div class="day-group">
+        <div class="day-head">
+          <span>${(labelFn || dayLabel)(iso)}</span>
+          ${iso === DEMO_TODAY ? '<span class="today-chip">오늘</span>' : ""}
+          ${sum ? `<span class="day-sum">${sum}</span>` : ""}
+        </div>
+        ${entries.map(dailyRowHtml).join("") || (emptyText ? `<p class="empty-hint" style="padding:8px 0;">${emptyText}</p>` : "")}
+      </div>`;
+  }
+
+  function dailyPanelHtml(wk){
+    const days = weekDays(wk);
+    const all = dailyOf(wk);
+
+    // 기록이 있는 날 + (이번 주라면) 오늘 — 빈 주말 행으로 목록을 늘리지 않는다
+    const dayList = days.filter(d => all.some(e => e.date === d) || d === DEMO_TODAY);
+
+    const groups = dayList.map(d => dayGroupHtml(d, all.filter(e => e.date === d), "기록 없음")).join("")
+      || `<p class="empty-hint" style="padding:14px 0;">이 주에 기록된 일이 없습니다.</p>`;
+
+    // 지난 날에 빠뜨린 기록도 채울 수 있어야 하므로 날짜 선택이 붙은 입력 한 벌을 패널 하단에 상시 노출한다.
+    // 보고서가 없는 주(status=empty)에서도 기록은 그대로 쓸 수 있다 — 기록은 주간보고에 의존하지 않는다.
+    const defaultDate = days.includes(DEMO_TODAY) ? DEMO_TODAY : days[days.length - 1];
+    const dateOptions = days.map(d => `<option value="${d}" ${d === defaultDate ? "selected" : ""}>${dayLabel(d)}</option>`).join("");
+
+    const wkHours = hoursTag(all);
+    return `
+      <div class="card daily-panel">
+        <div class="daily-head">
+          <div class="card-title"><h2>${weekIdx === CURRENT_IDX ? "이번 주에 한 일" : esc(wk.label) + "에 한 일"}</h2><span class="count">${all.length}건${wkHours ? " · " + wkHours : ""}</span></div>
+          <button class="link-more" id="hideDailyBtn" title="패널 숨기기">숨기기</button>
+        </div>
+        ${groups}
+        <!-- v5: 패널이 680px가 되면서 [날짜][시간][텍스트]가 한 줄에 다 들어간다(텍스트 칸 약 450px).
+             CSS를 바꿔서가 아니라 .quick-add의 flex-wrap + 텍스트 min-width:150px가 알아서 푼 결과다 —
+             폭이 줄어 셋이 안 들어가면(패널 ~330px 이하) v4처럼 [날짜][시간] / [텍스트] 두 줄로 다시 감긴다.
+             즉 넓어진 폭이 캡처 입력의 줄 수를 하나 줄여준다: 날짜·시간·내용을 눈 한 번에 확인하고 Enter. -->
+        <div class="quick-add">
+          <select class="date-sel" data-daily-newdate>${dateOptions}</select>
+          <input class="qa-hours tabular" type="number" step="0.5" min="0" placeholder="시간" title="투입시간 (선택)" data-daily-newhours>
+          <input type="text" data-daily-newtext placeholder="한 일 추가 (Enter)">
+        </div>
+        <p class="daily-note">오른쪽 주간보고를 쓸 때 참고하는 목록입니다. 기록이 항목으로 자동 옮겨지지는 않습니다.</p>
+      </div>`;
   }
 
   function renderWrite(){
     const wk = WEEKS[weekIdx];
+    document.body.classList.toggle("wide", dailyVisible);
     $("#weekLabel").innerHTML = esc(wk.label) + `<span class="range">${esc(wk.range)}</span>`;
     $("#prevWeekBtn").disabled = weekIdx === 0;
     $("#nextWeekBtn").disabled = weekIdx === WEEKS.length - 1;
 
     if (wk.status === "empty"){
-      writeView.innerHTML = `
+      writeView.innerHTML = wrapSplit(wk, `
         <div class="empty-state">
           <div class="icon">${ICON_SPARK}</div>
           <h3>${esc(wk.label)} 보고서가 아직 없습니다</h3>
           <p>지난주 미완료 항목은 자동으로 이월되어 채워집니다. 새로 시작해보세요.</p>
           <button class="btn" id="startDraftBtn">이번 주 보고서 작성 시작</button>
-        </div>`;
+        </div>`);
+      wireDailyEvents(wk);
       $("#startDraftBtn").addEventListener("click", () => {
-        const draft = buildCarriedOverDraft(WEEKS[weekIdx - 1], wk.label, wk.range);
+        const draft = buildCarriedOverDraft(WEEKS[weekIdx - 1], wk);
         WEEKS[weekIdx] = draft;
         renderWrite();
         showToast(draft.projects.length || draft.dev.length ? "보고서 초안을 만들었어요 (이월 항목 포함)" : "보고서 초안을 만들었어요");
@@ -574,16 +1067,21 @@
 
     const body = [];
 
+    // 추세 지표(최근 2주 평균 맨위크 / 진행중 프로젝트)는 대시보드로 옮겼고,
+    // "작성" 탭 상단 통계는 지금 보고 있는 주 자체의 값만 보여준다 — 제출 전 맨위크 확인이 목적.
+    const t = computeTotals(wk);
+    const itemCount = (wk.projects || []).reduce((n, p) => n + (p.subitems || []).length, 0)
+      + (wk.dev || []).length + (wk.etc || []).length + (wk.vacation || []).length;
+    body.push(`
+      <div class="stats">
+        <div class="stat"><span class="k">총 투입시간</span><span class="v tabular">${t.totalHours}<small>h</small></span></div>
+        <div class="stat"><span class="k">맨위크</span><span class="v tabular"${t.low ? ' style="color:var(--danger-fg);"' : ""}>${t.manWeek}</span></div>
+        <div class="stat"><span class="k">항목 수</span><span class="v tabular">${itemCount}<small>건</small></span></div>
+      </div>`);
+
     // 제출 여부는 참고 상태일 뿐, 지난 보고서도 항상 수정 + 재제출 가능
     if (wk.status === "submitted"){
-      const t = computeTotals(wk);
-      body.push(`<div class="locked-banner">${ICON_CHECK} 제출된 보고서입니다 · 총 ${t.totalHours}h · 맨위크 ${t.manWeek} — 수정 후 다시 내보낼 수 있습니다.</div>`);
-    } else {
-      body.push(`
-        <div class="stats">
-          <div class="stat"><span class="k">최근 4주 평균 맨위크</span><span class="v tabular">${wk.stats.avgManWeek}</span></div>
-          <div class="stat"><span class="k">진행중 프로젝트 수</span><span class="v tabular">${wk.stats.activeProjects}</span></div>
-        </div>`);
+      body.push(`<div class="locked-banner">${ICON_CHECK} 제출된 보고서입니다 — 수정 후 다시 내보낼 수 있습니다.</div>`);
     }
 
     body.push(`<div style="display:flex; flex-direction:column; gap:18px;">`);
@@ -636,8 +1134,24 @@
     const submitLabel = wk.status === "submitted" ? "다시 내보내기" : "제출하기";
     body.push(`<div class="submit-bar"><button class="btn" id="submitBtn">${submitLabel}</button></div>`);
 
-    writeView.innerHTML = body.join("");
+    writeView.innerHTML = wrapSplit(wk, body.join(""));
     wireWriteEvents(wk);
+    wireDailyEvents(wk);
+  }
+
+  /**
+   * 작성 화면 = 좌우 분할. 왼쪽 "한 일"(참고 자료) 옆에서 오른쪽 "주간보고"(결과물)를 사람이 직접 채운다.
+   * 둘 사이에 자동 연결은 없다 — 분할의 목적은 옮기는 동선이 아니라 "보면서 쓰는" 시야 확보다.
+   * 패널을 숨기면 기존 단일 컬럼 화면과 똑같아진다 — 일일 기록을 안 쓰는 사람에게 강요되지 않는다.
+   */
+  function wrapSplit(wk, mainHtml){
+    if (!dailyVisible){
+      return `<div class="split-main">
+        <button class="ghost" id="showDailyBtn" style="margin-top:0;">${ICON_NOTE_SM} 한 일 기록 보기</button>
+        ${mainHtml}
+      </div>`;
+    }
+    return `<div class="split">${dailyPanelHtml(wk)}<div class="split-main">${mainHtml}</div></div>`;
   }
 
   function wireWriteEvents(wk){
@@ -749,6 +1263,91 @@
 
     const submitBtn = $("#submitBtn");
     if (submitBtn) submitBtn.addEventListener("click", () => openPreview(wk));
+  }
+
+  /** 한 줄짜리 textarea가 내용 높이에 맞게 늘어나도록. 긴 기록이 잘리지 않고 전부 보이는 게 이 목록의 목적이다. */
+  function autoGrow(el){
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+  /**
+   * 기록 행의 인라인 편집(텍스트 + 시간). onSum은 시간이 바뀌었을 때 날짜 헤더 합계를 다시 그리라는 콜백이다.
+   * 실제 앱에서는 이 저장이 hx-swap="none"이라 화면이 다시 그려지지 않으므로,
+   * 합계 갱신은 app.js가 클라이언트에서 해야 한다(완료율 100% "완료" 배지와 같은 자리).
+   */
+  function wireDailyFields(scope, onSum){
+    scope.querySelectorAll("[data-daily-text]").forEach(el => {
+      autoGrow(el);
+      el.addEventListener("input", () => {
+        autoGrow(el);
+        const entry = dailyEntry(Number(el.closest("[data-daily]").dataset.daily));
+        if (entry) entry.text = el.value;
+      });
+      // 기록은 한 줄짜리 메모다 — Enter로 줄을 늘리는 대신 편집을 끝낸다
+      el.addEventListener("keydown", ev => { if (ev.key === "Enter"){ ev.preventDefault(); el.blur(); } });
+    });
+    scope.querySelectorAll("[data-daily-hours]").forEach(el => {
+      el.addEventListener("input", () => {
+        const entry = dailyEntry(Number(el.closest("[data-daily]").dataset.daily));
+        if (!entry) return;
+        entry.hours = el.value === "" ? "" : Number(el.value);
+        onSum?.(el);
+      });
+    });
+  }
+
+  /** 날짜 헤더의 합계만 다시 계산해 갈아끼운다 — 입력 포커스를 잃지 않으려고 행 전체를 다시 그리지 않는다. */
+  function refreshDaySum(inputEl){
+    const group = inputEl.closest(".day-group");
+    if (!group) return;
+    const ids = [...group.querySelectorAll("[data-daily]")].map(el => Number(el.dataset.daily));
+    const sum = hoursTag(DAILY.filter(e => ids.includes(e.id)));
+    const head = group.querySelector(".day-head");
+    let el = head.querySelector(".day-sum");
+    if (!sum){ el?.remove(); return; }
+    if (!el){ el = document.createElement("span"); el.className = "day-sum"; head.appendChild(el); }
+    el.textContent = sum;
+  }
+
+  /**
+   * 일일 기록 패널 이벤트 — 추가 / 수정 / 삭제, 셋뿐이다.
+   * 주간보고 쪽으로 흘러가는 동작(승격·해제·대상 변경)은 v3에서 전부 없앴으므로 여기서 wk를 건드리지 않는다.
+   */
+  function wireDailyEvents(wk){
+    $("#hideDailyBtn")?.addEventListener("click", () => { dailyVisible = false; renderWrite(); });
+    $("#showDailyBtn")?.addEventListener("click", () => { dailyVisible = true; renderWrite(); });
+
+    wireDailyFields(writeView, refreshDaySum);
+
+    writeView.querySelectorAll("[data-daily-remove]").forEach(btn => btn.addEventListener("click", () => {
+      removeDaily(Number(btn.closest("[data-daily]").dataset.daily));
+      renderWrite();
+    }));
+
+    const newText = writeView.querySelector("[data-daily-newtext]");
+    if (newText){
+      newText.addEventListener("keydown", ev => {
+        if (ev.key !== "Enter" || !newText.value.trim()) return;
+        const hoursEl = writeView.querySelector("[data-daily-newhours]");
+        addDaily(writeView.querySelector("[data-daily-newdate]").value, newText.value, hoursEl.value);
+        renderWrite();
+        writeView.querySelector("[data-daily-newtext]")?.focus();
+      });
+    }
+  }
+
+  /** 기록 추가/삭제는 세 화면이 공유한다 — 시간은 비워도 되고, 빈 문자열로 저장한다(0h가 아니라 "안 적음"). */
+  function addDaily(date, text, hours){
+    if (!text.trim()) return null;
+    const e = { id: nextId(), date, text: text.trim(), hours: hours === "" || hours == null ? "" : Number(hours) };
+    DAILY.push(e);
+    return e;
+  }
+  function removeDaily(id){
+    const entry = dailyEntry(id);
+    if (!entry) return;
+    const idx = DAILY.indexOf(entry);
+    if (idx > -1) DAILY.splice(idx, 1);
   }
 
   function wireRowOnce(rowEl, wk){
@@ -935,21 +1534,29 @@
     showToast("md 파일을 내보냈어요");
   });
 
-  // ---------- history ----------
-  // 목록일 뿐 별도 데이터 사본이 아님 — WEEKS에서 제출된 주만 뽑아 보여주고,
-  // 클릭하면 "작성" 탭의 그 주로 이동한다. 그 주도 똑같이 수정 가능.
-  function renderHistory(){
-    const submitted = WEEKS.map((w, idx) => ({ w, idx })).filter(x => x.w.status === "submitted");
-    $("#histCount").textContent = submitted.length;
+  // ---------- 과거 보고서 카드 (대시보드 / 히스토리 공용) ----------
+  /**
+   * 과거 보고서 = 이번 주를 뺀 "제출된" 주만. 최신순.
+   * 작성중(draft) 초안도 넣는 안을 검토했으나 사용자 결정으로 제외 — 목록은 제출본 아카이브다.
+   * (초안은 대시보드의 "이번 주" 카드나 작성 탭 주차 페이저로 접근한다.)
+   */
+  function pastReports(){
+    return WEEKS.map((w, idx) => ({ w, idx }))
+      .filter(x => x.idx !== CURRENT_IDX && x.w.status === "submitted")
+      .reverse();
+  }
 
-    if (!submitted.length){
-      historyList.innerHTML = `<p class="empty-hint">아직 제출된 보고서가 없습니다.</p>`;
-      return;
-    }
+  /** 이번 주 카드(hero) 전용 — 목록은 전부 제출본이라 배지를 달지 않는다. */
+  function statusBadge(status){
+    if (status === "submitted") return '<span class="badge done">제출됨</span>';
+    if (status === "draft") return '<span class="badge draft">작성중</span>';
+    return '<span class="badge idle">미작성</span>';
+  }
 
-    historyList.innerHTML = submitted.map(({ w, idx }) => {
-      const t = computeTotals(w);
-      return `
+  /** 클릭하면 "작성" 탭의 그 주로 이동한다 — 이 앱엔 읽기전용 상세 화면이 없다(지난 주도 항상 수정 가능). */
+  function histCardHtml(w, idx){
+    const t = computeTotals(w);
+    return `
       <div class="hist-card" data-idx="${idx}">
         <div class="hist-summary">
           ${t.low ? '<div class="low-stripe"></div>' : ""}
@@ -964,9 +1571,10 @@
           </div>
         </div>
       </div>`;
-    }).join("");
+  }
 
-    historyList.querySelectorAll(".hist-card").forEach(el => {
+  function wireHistCards(container){
+    container.querySelectorAll(".hist-card").forEach(el => {
       el.addEventListener("click", () => {
         weekIdx = Number(el.dataset.idx);
         switchTab("write");
@@ -974,18 +1582,662 @@
     });
   }
 
+  // ---------- history (과거 보고서 / 한 일 기록) ----------
+  /**
+   * 히스토리 탭은 v4에서 두 뷰를 담는다.
+   *
+   * 왜 4번째 탭을 만들지 않았나 (IA 판단):
+   *  1) 한국어로 '히스토리'와 '기록'은 헤더에 나란히 서면 구분이 안 된다 — 이름부터 충돌한다.
+   *  2) 두 목록의 성격이 같다: 지난 것을 최신순으로 훑고, 클릭하면 그 시점으로 들어간다.
+   *  3) 기록을 **적는** 자리는 이미 둘(대시보드 캡처 카드 / 작성 화면 패널)이다.
+   *     이 화면은 적는 곳이 아니라 **찾아보는** 곳이라 매일 들르는 동선이 아니다 → 탭 승격 근거가 약하다.
+   *  4) 히스토리 탭은 그동안 카드 목록 하나뿐인 가장 빈 탭이었다 — 이 뷰가 그 자리를 채운다.
+   *
+   * 왜 월 축인가: 주 축은 이미 작성 화면 패널이 하고 있어서 그대로 옮기면 "쭉 보기"가 안 된다.
+   * 한 달치를 한 화면에 세로로 쭉 깔고, 넘기는 조작은 한 달에 한 번만 일어나게 한다(주 페이저 대비 1/4).
+   */
+  let histSub = "reports";                    // "reports" | "records"
+  let recMonth = DEMO_TODAY.slice(0, 7);      // 한 일 기록 화면이 보고 있는 달
+  let recQuery = "";                          // 검색어 — 비어있지 않으면 월 범위를 무시하고 전체 기간에서 찾는다
+
+  function monthLabel(ym){ const [y, m] = ym.split("-"); return `${y}년 ${Number(m)}월`; }
+  function shiftMonth(ym, n){
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, m - 1 + n, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  function monthBounds(){
+    const months = DAILY.map(e => e.date.slice(0, 7)).concat(DEMO_TODAY.slice(0, 7)).sort();
+    return { min: months[0], max: months[months.length - 1] };
+  }
+  function longDayLabel(iso){
+    const d = new Date(iso + "T00:00:00");
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")} (${DOW[d.getDay()]})`;
+  }
+
+  function renderHistory(){
+    const past = pastReports();
+    historyView.innerHTML = `
+      <div class="hist-switch">
+        <div class="seg" role="tablist">
+          <button class="${histSub === "reports" ? "active" : ""}" data-hist-sub="reports">과거 보고서 · ${past.length}</button>
+          <button class="${histSub === "records" ? "active" : ""}" data-hist-sub="records">한 일 기록 · ${DAILY.length}</button>
+        </div>
+      </div>
+      ${histSub === "reports" ? reportsPaneHtml(past) : recordsPaneHtml()}`;
+
+    historyView.querySelectorAll("[data-hist-sub]").forEach(btn => btn.addEventListener("click", () => {
+      histSub = btn.dataset.histSub;
+      renderHistory();
+      window.scrollTo({ top: 0 });
+    }));
+
+    if (histSub === "reports"){ wireHistCards($("#historyList")); return; }
+    wireRecordsEvents();
+  }
+
+  function reportsPaneHtml(past){
+    return `<div id="historyList" class="dash-list">${
+      past.length ? past.map(({ w, idx }) => histCardHtml(w, idx)).join("")
+                  : `<p class="empty-hint">아직 제출된 보고서가 없습니다.</p>`}</div>`;
+  }
+
+  /**
+   * 한 일 기록 — 열람/수정 전용. v3에서 확정한 "체크·승격 없음" 원칙이 이 화면에도 그대로 적용된다:
+   * 여기서 기록을 골라 주간보고 항목으로 만드는 장치는 없다(추가/수정/삭제 셋뿐, 좌측 패널과 동일).
+   * 날짜 정렬은 **최신 위**(과거 보고서 목록과 같은 최신순) — 작성 화면 패널이 금→목 오름차순인 것과 다르다.
+   * 패널은 한 주를 처음부터 끝까지 읽는 자리고, 여기는 최근에서 거슬러 올라가는 자리라 기준 축이 다르다.
+   */
+  function recordsPaneHtml(){
+    const searching = recQuery.trim() !== "";
+    const q = recQuery.trim().toLowerCase();
+    const list = searching
+      ? DAILY.filter(e => e.text.toLowerCase().includes(q))
+      : DAILY.filter(e => e.date.startsWith(recMonth));
+    const days = [...new Set(list.map(e => e.date))].sort().reverse();
+    const bounds = monthBounds();
+    const totalHours = sumHours(list);
+
+    const groups = days.map(d => dayGroupHtml(
+      d,
+      list.filter(e => e.date === d).sort((a, b) => a.id - b.id),
+      "",
+      searching ? longDayLabel : dayLabel
+    )).join("");
+
+    const defaultDate = recMonth === DEMO_TODAY.slice(0, 7) ? DEMO_TODAY : recMonth + "-01";
+
+    return `
+      <div class="rec-toolbar">
+        <div class="pager inline">
+          <button data-rec-prev aria-label="이전 달" title="이전 달" ${!searching && recMonth <= bounds.min ? "disabled" : ""}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="label">${monthLabel(recMonth)}</div>
+          <button data-rec-next aria-label="다음 달" title="다음 달" ${!searching && recMonth >= bounds.max ? "disabled" : ""}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <div class="rec-search">
+          ${ICON_SEARCH}
+          <input type="text" value="${esc(recQuery)}" placeholder="기록 검색 (예: GTPP)" data-rec-search autocomplete="off">
+          ${searching ? `<button class="icon-btn chevron clear" data-rec-clear title="검색 지우기">${ICON_X}</button>` : ""}
+        </div>
+      </div>
+
+      ${searching ? `<div class="rec-scope">${ICON_SEARCH} 전체 기간에서 “${esc(recQuery.trim())}” — ${list.length}건</div>` : `
+      <div class="stats">
+        <div class="stat"><span class="k">기록</span><span class="v tabular">${list.length}<small>건</small></span></div>
+        <div class="stat"><span class="k">기록된 시간</span><span class="v tabular">${fmtHours(totalHours)}<small>h</small></span></div>
+        <div class="stat"><span class="k">기록한 날</span><span class="v tabular">${days.length}<small>일</small></span></div>
+      </div>`}
+
+      <div class="card rec-list">
+        ${searching ? "" : `
+        <div class="quick-add" style="margin-top:0;">
+          <input class="date-sel" type="date" value="${defaultDate}" data-rec-newdate title="기록할 날짜">
+          <input class="qa-hours tabular" type="number" step="0.5" min="0" placeholder="시간" title="투입시간 (선택)" data-rec-newhours>
+          <input type="text" placeholder="한 일 추가 (Enter)" data-rec-newtext autocomplete="off">
+        </div>`}
+        ${groups || `<p class="empty-hint" style="padding:26px 0; text-align:center;">${
+          searching ? "검색 결과가 없습니다." : "이 달에 기록된 일이 없습니다."}</p>`}
+      </div>
+
+      <p class="daily-note">주간보고를 쓸 때 참고하는 개인 기록입니다. 내보내는 <b>.md</b> 파일에는 포함되지 않습니다.</p>`;
+  }
+
+  function wireRecordsEvents(){
+    const bounds = monthBounds();
+    $("[data-rec-prev]")?.addEventListener("click", () => {
+      if (recMonth <= bounds.min) return;
+      recMonth = shiftMonth(recMonth, -1); recQuery = ""; renderHistory();
+    });
+    $("[data-rec-next]")?.addEventListener("click", () => {
+      if (recMonth >= bounds.max) return;
+      recMonth = shiftMonth(recMonth, 1); recQuery = ""; renderHistory();
+    });
+
+    const search = $("[data-rec-search]");
+    if (search){
+      // 목업이라 즉시 필터. 실제 앱에선 hx-trigger="keyup changed delay:300ms"로 목록 영역만 교체한다.
+      search.addEventListener("input", () => {
+        const pos = search.selectionStart;
+        recQuery = search.value;
+        renderHistory();
+        const again = $("[data-rec-search]");
+        again.focus(); again.setSelectionRange(pos, pos);
+      });
+    }
+    $("[data-rec-clear]")?.addEventListener("click", () => { recQuery = ""; renderHistory(); });
+
+    wireDailyFields(historyView, refreshDaySum);
+    historyView.querySelectorAll("[data-daily-remove]").forEach(btn => btn.addEventListener("click", () => {
+      removeDaily(Number(btn.closest("[data-daily]").dataset.daily));
+      renderHistory();
+    }));
+
+    const newText = $("[data-rec-newtext]");
+    newText?.addEventListener("keydown", ev => {
+      if (ev.key !== "Enter") return;
+      const date = $("[data-rec-newdate]").value;
+      if (!addDaily(date, newText.value, $("[data-rec-newhours]").value)) return;
+      // 보고 있는 달 밖의 날짜로 적으면 그 달로 따라간다 — 적었는데 화면에서 사라지는 일이 없어야 한다
+      if (!date.startsWith(recMonth)) recMonth = date.slice(0, 7);
+      renderHistory();
+      $("[data-rec-newtext]")?.focus();
+    });
+  }
+
+  // ---------- dashboard ----------
+  const RECENT_WEEKS_FOR_AVG = 2;   // "최근 2주 평균 맨위크" — 기존 4주 평균에서 사용자 요청으로 변경
+  const RECENT_REPORTS_ON_DASH = 5; // 대시보드에 노출할 과거 보고서 개수(전체는 히스토리 탭)
+  const PROJECT_LOOKBACK = 4;       // 진행중 프로젝트를 찾을 때 거슬러 볼 보고서 수
+
+  /** 프로젝트 진행률 = 세부 항목 완료율의 평균(반올림). 100%면 더는 "진행중"이 아니다. */
+  function projectProgress(p){
+    const filled = (p.subitems || []).filter(i => i.completion !== "" && i.completion != null);
+    if (!filled.length) return 0;
+    return Math.round(filled.reduce((n, i) => n + Number(i.completion || 0), 0) / filled.length);
+  }
+
+  /**
+   * 진행중 프로젝트 — 최근 보고서들을 최신순으로 훑어 일감번호 기준으로 중복을 제거하고,
+   * 가장 최근 진행률이 100% 미만인 것만 남긴다.
+   * (실제 앱에서는 Project.active == true가 1차 필터가 된다 — design_summary.md 참고)
+   */
+  function activeProjects(){
+    const cur = WEEKS[CURRENT_IDX];
+    const scope = (cur.status === "empty" ? [] : [{ w: cur, idx: CURRENT_IDX }])
+      .concat(pastReports()).slice(0, PROJECT_LOOKBACK);
+    const seen = new Set();
+    const out = [];
+    scope.forEach(({ w, idx }) => (w.projects || []).forEach(p => {
+      const key = p.ticket || p.name;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const pct = projectProgress(p);
+      if (pct >= 100) return;
+      out.push({ name: p.name, ticket: p.ticket, pct, lastWeek: w.label, idx });
+    }));
+    return out;
+  }
+
+  function dailyCaptureCardHtml(){
+    const cur = WEEKS[CURRENT_IDX];
+    const days = weekDays(cur);
+    const all = dailyOf(cur);
+    const today = all.filter(e => e.date === DEMO_TODAY);
+    // 오늘 말고도 최근 며칠은 펼쳐둔다 — 어제 적은 걸 오늘 고치는 일이 잦다. 그 주 전체는 작성 화면 패널에서 본다.
+    const prevDays = days.filter(d => d < DEMO_TODAY && all.some(e => e.date === d)).reverse().slice(0, DASH_RECENT_DAYS - 1);
+    const todayHours = hoursTag(today);
+    const weekHours = hoursTag(all);
+
+    return `
+      <div class="card tile dash-daily t-daily">
+        <div class="daily-head">
+          <div class="card-title"><h2>오늘 한 일</h2><span class="count">${today.length}건${todayHours ? " · " + todayHours : ""}</span></div>
+          <span class="kicker">${dayLabel(DEMO_TODAY)}</span>
+        </div>
+        <!-- 시간 칸은 비워도 되는 보조 칸이라 텍스트 뒤에 붙이고 폭을 고정한다 — 캡처의 주인공은 여전히 텍스트다 -->
+        <div class="quick-add">
+          <input id="quickAddInput" type="text" placeholder="방금 끝낸 일을 짧게 적어두세요 (Enter)" autocomplete="off">
+          <input id="quickAddHours" class="qa-hours tabular" type="number" step="0.5" min="0" placeholder="시간" title="투입시간 (선택)">
+          <button class="ghost" id="quickAddBtn">${ICON_PLUS} 추가</button>
+        </div>
+        <div class="tile-body">
+          ${today.map(dailyRowHtml).join("") || `<p class="empty-hint">오늘은 아직 기록이 없습니다.</p>`}
+          ${prevDays.map(d => dayGroupHtml(d, all.filter(e => e.date === d))).join("")}
+        </div>
+        <div class="daily-foot">
+          <span>이번 주 기록 <b>${all.length}</b>건${weekHours ? ` · <b class="tabular">${weekHours}</b>` : ""}</span>
+          <span class="foot-links">
+            <button class="link-more" id="toRecordsBtn">전체 기록 보기</button>
+            <button class="link-more" id="toWriteFromDailyBtn">주간보고 쓰면서 보기 ${ICON_ARROW}</button>
+          </span>
+        </div>
+      </div>`;
+  }
+
+  // ---------- 할 일(전망형 개인 목록) ----------
+  /**
+   * 할 일 = { id, due, text, done, priority } — 이게 전부다(2026-08-15 사용자 확정 스코프).
+   * 예상소요시간·반복일정 없음. 자동 이월 없음(못 지킨 일은 원래 날짜에 그대로 두고 표시만 강조).
+   * 완료해도 일일 기록(DAILY)으로 넘어가지 않고, .md 내보내기에도 포함되지 않는다 — 두 목록은 완전히 별개다.
+   * ReportItem의 개발완료일/테스트예정일/배포예정일과도 무관하다(FK 없음).
+   */
+  // 접힌 상태에서 보여줄 미완료 항목 수(그 이상은 "+N건 더").
+  // v6은 6이었다 — 벤토에서 TODO가 세로로 가장 긴 타일(4×10 = 746px)이 되면서 6건만 그리면
+  // 목록 아래가 200px 가까이 비어 "내용이 모자란 큰 카드"로 보인다. 타일 높이에 맞춰 8로 올린다.
+  const TODO_VISIBLE = 8;
+  const PRIO = { high:{label:"높음"}, mid:{label:"보통"}, low:{label:"낮음"} };
+  const PRIO_ORDER = ["high","mid","low"];
+  const nextPrio = p => PRIO_ORDER[(PRIO_ORDER.indexOf(p) + 1) % PRIO_ORDER.length];
+
+  let todoExpanded = false;   // "+N건 더" 펼침 상태 (렌더 사이에 유지)
+  let todoDoneOpen = false;   // 완료 목록 펼침 상태
+  let todoNewPrio = "mid";    // 추가 입력줄의 우선순위
+
+  const TODOS = [
+    { id: nextId(), due:"2026-08-10", text:"GTPP 결제 타임아웃 재현 케이스 정리", done:false, priority:"high" },
+    { id: nextId(), due:"2026-08-12", text:"2차인증 API 스펙 회신", done:false, priority:"mid" },
+    { id: nextId(), due:"2026-08-13", text:"결제 배치 재처리 결과 확인", done:false, priority:"high" },
+    { id: nextId(), due:"2026-08-13", text:"주간보고 초안 정리", done:false, priority:"mid" },
+    { id: nextId(), due:"2026-08-14", text:"OTP 발송 모듈 코드리뷰 반영", done:false, priority:"mid" },
+    { id: nextId(), due:"2026-08-17", text:"신입 온보딩 교육자료 초안", done:false, priority:"low" },
+    { id: nextId(), due:"2026-08-18", text:"GTPP 릴리스 노트 정리", done:false, priority:"mid" },
+    { id: nextId(), due:"2026-08-19", text:"결제 모듈 성능 측정 스크립트 작성", done:false, priority:"low" },
+    { id: nextId(), due:"2026-08-20", text:"2차인증 QA 시나리오 검토", done:false, priority:"mid" },
+    { id: nextId(), due:"2026-08-21", text:"파트 기술공유 발표 자료", done:false, priority:"low" },
+    { id: nextId(), due:"2026-08-11", text:"배포 스크립트 백업", done:true,  priority:"mid" },
+    { id: nextId(), due:"2026-08-12", text:"파트 주간회의 안건 정리", done:true, priority:"mid" },
+  ];
+
+  function todoOf(id){ return TODOS.find(t => t.id === id) || null; }
+  function shortDate(iso){ return iso.slice(5).replace("-", "."); }
+
+  /** 미완료 정렬: 기한 이른 순 → 우선순위(높음·보통·낮음) → 등록순. 기한 지난 것이 자연히 맨 위로 온다. */
+  function openTodos(){
+    return TODOS.filter(t => !t.done).sort((a, b) =>
+      a.due < b.due ? -1 : a.due > b.due ? 1
+      : PRIO_ORDER.indexOf(a.priority) - PRIO_ORDER.indexOf(b.priority) || a.id - b.id);
+  }
+  function doneTodos(){ return TODOS.filter(t => t.done).sort((a, b) => a.due < b.due ? 1 : a.due > b.due ? -1 : b.id - a.id); }
+
+  function todoRowHtml(t){
+    const p = PRIO[t.priority] || PRIO.mid;
+    const over = !t.done && t.due < DEMO_TODAY;
+    return `
+      <div class="todo-row ${t.done ? "done" : ""}" data-todo="${t.id}">
+        <div class="todo-item">
+          <input class="todo-check" type="checkbox" ${t.done ? "checked" : ""} data-todo-done aria-label="완료 표시">
+          <div class="t-wrap">
+            ${over ? `<span class="od" title="기한 ${shortDate(t.due)} 지남">${shortDate(t.due)}</span>` : ""}
+            <textarea class="t-txt" rows="1" placeholder="할 일" data-todo-text>${esc(t.text)}</textarea>
+          </div>
+          <button class="prio ${t.priority}" data-todo-prio title="우선순위 ${p.label} · 클릭해 변경">${p.label}</button>
+          <button class="icon-btn chevron" data-todo-cal title="기한 변경">${ICON_CAL}</button>
+          <button class="icon-btn" data-todo-remove title="할 일 삭제">${ICON_TRASH}</button>
+        </div>
+        <div class="row-detail" data-todo-detail>
+          <label class="inline">기한<input type="date" value="${t.due}" data-todo-due></label>
+        </div>
+      </div>`;
+  }
+
+  function todoCardHtml(){
+    const open = openTodos();
+    const done = doneTodos();
+    const shown = todoExpanded ? open : open.slice(0, TODO_VISIBLE);
+    const hidden = open.length - shown.length;
+
+    // 기한 지난 것들은 날짜가 제각각이라 한 그룹으로 묶고(행마다 날짜 칩), 나머지는 날짜별 그룹.
+    const overdue = shown.filter(t => t.due < DEMO_TODAY);
+    const rest = shown.filter(t => t.due >= DEMO_TODAY);
+    const dates = [...new Set(rest.map(t => t.due))];
+
+    let groups = "";
+    if (overdue.length){
+      groups += `
+        <div class="day-group">
+          <div class="day-head over"><span>기한 지남</span><span class="n">${overdue.length}건</span></div>
+          ${overdue.map(todoRowHtml).join("")}
+        </div>`;
+    }
+    groups += dates.map(d => `
+      <div class="day-group">
+        <div class="day-head">
+          <span>${dayLabel(d)}</span>
+          ${d === DEMO_TODAY ? '<span class="today-chip">오늘</span>' : ""}
+        </div>
+        ${rest.filter(t => t.due === d).map(todoRowHtml).join("")}
+      </div>`).join("");
+
+    // 전체 열람 화면이 없으므로 "더 보기"는 다른 데로 보내지 않고 이 카드 안에서만 펼친다.
+    const moreBtn = hidden > 0
+      ? `<div class="todo-foot"><button class="link-more" data-todo-more>+${hidden}건 더 보기 ${ICON_ARROW}</button></div>`
+      : (todoExpanded && open.length > TODO_VISIBLE
+        ? `<div class="todo-foot"><button class="link-more" data-todo-more>접기</button></div>` : "");
+
+    // 완료한 것은 지우지 않는다(잘못 체크한 걸 되돌릴 수 있어야 하므로) — 대신 접어서 남은 일이 목록의 주인공이 되게 한다.
+    const doneBlock = done.length ? `
+      <div class="todo-done">
+        <button class="link-more" data-todo-donetoggle>${todoDoneOpen ? "완료 숨기기" : `완료 ${done.length}건 보기`}</button>
+        ${todoDoneOpen ? done.map(todoRowHtml).join("") : ""}
+      </div>` : "";
+
+    const np = PRIO[todoNewPrio];
+    return `
+      <div class="card tile todo-card t-todo">
+        <div class="card-head">
+          <div class="card-title"><h2>TODO 리스트</h2><span class="count" title="미완료">${open.length}건</span></div>
+        </div>
+        <div class="quick-add">
+          <input class="date-sel" type="date" value="${DEMO_TODAY}" data-todo-newdue title="기한">
+          <button class="prio ${todoNewPrio}" data-todo-newprio title="우선순위 ${np.label} · 클릭해 변경">${np.label}</button>
+          <input type="text" data-todo-newtext placeholder="할 일 추가 (Enter)" autocomplete="off">
+        </div>
+        <div class="tile-body">
+          ${groups || `<p class="empty-hint" style="padding:14px 0;">등록된 할 일이 없습니다.</p>`}
+          ${moreBtn}
+          ${doneBlock}
+        </div>
+        <p class="todo-note">개인용 목록입니다. 주간보고(.md)에는 나가지 않습니다.</p>
+      </div>`;
+  }
+
+  function wireTodoEvents(){
+    const scope = dashboardView;
+    const rowId = el => Number(el.closest("[data-todo]").dataset.todo);
+
+    // 텍스트만 화면을 다시 그리지 않는다(입력 포커스 유지) — 나머지는 목록 순서/그룹이 바뀌므로 재렌더
+    scope.querySelectorAll("[data-todo-text]").forEach(el => {
+      autoGrow(el);
+      el.addEventListener("input", () => {
+        autoGrow(el);
+        const t = todoOf(rowId(el));
+        if (t) t.text = el.value;
+      });
+      el.addEventListener("keydown", ev => { if (ev.key === "Enter"){ ev.preventDefault(); el.blur(); } });
+    });
+    scope.querySelectorAll("[data-todo-done]").forEach(el => el.addEventListener("change", () => {
+      const t = todoOf(rowId(el));
+      if (!t) return;
+      // 체크하면 그 자리에서 사라지고 하단 "완료 N건" 섹션으로 내려간다(펼쳐둔 상태라면 거기서 바로 보인다)
+      t.done = el.checked;
+      renderDashboard();
+    }));
+    scope.querySelectorAll("[data-todo-prio]").forEach(el => el.addEventListener("click", () => {
+      const t = todoOf(rowId(el));
+      if (!t) return;
+      t.priority = nextPrio(t.priority);
+      renderDashboard();
+    }));
+    scope.querySelectorAll("[data-todo-cal]").forEach(el => el.addEventListener("click", () => {
+      const panel = el.closest("[data-todo]").querySelector("[data-todo-detail]");
+      panel.classList.toggle("open");
+      el.classList.toggle("open");
+      if (panel.classList.contains("open")) panel.querySelector("input")?.focus();
+    }));
+    scope.querySelectorAll("[data-todo-due]").forEach(el => el.addEventListener("change", () => {
+      const t = todoOf(rowId(el));
+      if (!t || !el.value) return;
+      t.due = el.value;          // 기한을 옮겨도 이력은 남지 않는다 — 자동 이월이 없으니 옮기는 건 사람의 선택
+      renderDashboard();
+    }));
+    scope.querySelectorAll("[data-todo-remove]").forEach(el => el.addEventListener("click", () => {
+      const idx = TODOS.indexOf(todoOf(rowId(el)));
+      if (idx > -1) TODOS.splice(idx, 1);
+      renderDashboard();
+    }));
+
+    scope.querySelector("[data-todo-more]")?.addEventListener("click", () => { todoExpanded = !todoExpanded; renderDashboard(); });
+    scope.querySelector("[data-todo-donetoggle]")?.addEventListener("click", () => { todoDoneOpen = !todoDoneOpen; renderDashboard(); });
+
+    // 추가 입력줄의 우선순위는 재렌더 없이 제자리에서 바꾼다 — 타이핑 중인 텍스트가 날아가면 안 된다
+    scope.querySelector("[data-todo-newprio]")?.addEventListener("click", ev => {
+      todoNewPrio = nextPrio(todoNewPrio);
+      const b = ev.currentTarget, p = PRIO[todoNewPrio];
+      b.className = `prio ${todoNewPrio}`;
+      b.textContent = p.label;
+      b.title = `우선순위 ${p.label} · 클릭해 변경`;
+    });
+    const newText = scope.querySelector("[data-todo-newtext]");
+    newText?.addEventListener("keydown", ev => {
+      if (ev.key !== "Enter" || !newText.value.trim()) return;
+      TODOS.push({ id: nextId(), due: scope.querySelector("[data-todo-newdue]").value || DEMO_TODAY,
+                   text: newText.value.trim(), done:false, priority: todoNewPrio });
+      renderDashboard();
+      dashboardView.querySelector("[data-todo-newtext]")?.focus();
+    });
+  }
+
+  /**
+   * hero 타일(6×4) — 벤토에서 가장 큰 면적.
+   * 담는 것: 이번 주가 몇 주차이고 어떤 상태인가 + 유일한 강한 CTA + 요일별 기록 스트립.
+   * 숫자(시간/맨위크/건수)는 옆의 작은 지표 타일이 받는다 — 큰 타일과 작은 타일이 같은 숫자를
+   * 두 번 말하지 않게 역할을 나눈 것이 v7 배치의 핵심이다.
+   */
+  const HERO_DAY_MAX_HOURS = 8;   // 요일 막대를 꽉 채우는 기준(하루 8시간)
+
+  function heroTileHtml(){
+    const cur = WEEKS[CURRENT_IDX];
+    const all = dailyOf(cur);
+    const days = weekDays(cur);
+    const label = cur.status === "empty" ? "신규 작성" : cur.status === "draft" ? "이어서 작성" : "수정하기";
+    const cls = cur.status === "submitted" ? "btn outline" : "btn";
+
+    // 이 앱의 한 주는 금~목이라 7칸 전부를 그린다 — 주말이 비어 보이는 게 아니라, 주말이 주 안에 있다는 사실이 보여야 한다.
+    const strip = days.map(d => {
+      const h = sumHours(all.filter(e => e.date === d));
+      const pct = h ? Math.max(8, Math.min(100, Math.round(h / HERO_DAY_MAX_HOURS * 100))) : 0;
+      const dow = DOW[new Date(d + "T00:00:00").getDay()];
+      const cl = [h ? "" : "empty", d === DEMO_TODAY ? "today" : ""].filter(Boolean).join(" ");
+      return `
+        <div class="wk-day ${cl}" title="${dayLabel(d)}${h ? ` · ${fmtHours(h)}h 기록` : " · 기록 없음"}">
+          <span class="dw">${dow}</span>
+          <span class="bar-v">${pct ? `<i style="height:${pct}%"></i>` : ""}</span>
+          <span class="hh">${h ? fmtHours(h) : "·"}</span>
+        </div>`;
+    }).join("");
+
+    const loggedDays = days.filter(d => all.some(e => e.date === d)).length;
+    const wh = hoursTag(all);
+    const sub = cur.status === "empty"
+      ? `<p class="hero-note">아직 작성을 시작하지 않았습니다. 지난주 미완료 항목은 자동으로 이월되어 채워집니다.</p>`
+      : `<span class="hero-sub">이번 주 기록 ${loggedDays}일${wh ? ` · ${wh}` : ""}</span>`;
+
+    return `
+      <div class="card tile hero t-hero">
+        <div class="hero-top">
+          <div class="hero-left">
+            <span class="kicker">이번 주</span>
+            <div class="hero-title">
+              <span class="wk">${esc(cur.label)}</span>
+              ${statusBadge(cur.status)}
+            </div>
+            <span class="rng">${esc(cur.range)}</span>
+            ${sub}
+          </div>
+          <button class="${cls}" id="heroActionBtn">${label}</button>
+        </div>
+        <div class="wk-days">${strip}</div>
+      </div>`;
+  }
+
+  /** 작은 지표 타일(3×2) — 좁은 면적에 40px 숫자 하나. 큰 타일 옆에서 "압축 요약"을 맡는다. */
+  function metricTileHtml({ k, v, unit, sub, low }){
+    return `
+      <div class="card tile metric t-metric ${low ? "low" : ""}">
+        <span class="kicker">${k}</span>
+        <div class="v tabular">${v}${unit ? `<u>${unit}</u>` : ""}</div>
+        <span class="s">${sub}</span>
+      </div>`;
+  }
+
+  function renderDashboard(){
+    const cur = WEEKS[CURRENT_IDX];
+    const past = pastReports();
+    const recent = past.slice(0, RECENT_WEEKS_FOR_AVG);
+
+    // ① 주 단위로 훑는 추세 두 가지 — 최근 2주 평균 맨위크 / 진행중인 프로젝트(중간 크기 타일)
+    const avg = recent.length
+      ? recent.reduce((n, x) => n + Number(computeTotals(x.w).manWeek), 0) / recent.length
+      : 0;
+    const avgLow = avg < LOW_MANWEEK_THRESHOLD;
+    const weekRows = recent.map(({ w }) => {
+      const t = computeTotals(w);
+      return `
+        <div class="mw-week">
+          <div class="top"><span class="lb">${esc(w.label)}</span><span class="vl tabular ${t.low ? "low" : ""}">${t.manWeek}</span></div>
+          <div class="bar ${t.low ? "low" : ""}"><i style="width:${Math.min(100, Number(t.manWeek) * 100)}%"></i></div>
+        </div>`;
+    }).join("") || `<p class="empty-hint">평균을 낼 보고서가 아직 없습니다.</p>`;
+
+    const projects = activeProjects();
+    const projectRows = projects.length
+      ? projects.map(p => `
+        <div class="proj-row">
+          <div class="proj-top">
+            <span class="nm">${esc(p.name)}</span>
+            ${p.ticket ? `<span class="tk">${esc(p.ticket)}</span>` : ""}
+            <span class="pc tabular">${p.pct}%</span>
+          </div>
+          <div class="bar"><i style="width:${p.pct}%"></i></div>
+          <div class="proj-meta">최근 보고 · ${esc(p.lastWeek)}</div>
+        </div>`).join("")
+      : `<p class="empty-hint">진행중인 프로젝트가 없습니다.</p>`;
+
+    // ② 작은 지표 타일 4개 — hero 옆 6칸을 2×2로 채운다.
+    // 고른 기준: "지금 손을 대야 하나"를 한 숫자로 답할 수 있는 것만. 나머지는 아래 큰 타일이 설명한다.
+    const t = cur.status === "empty" ? null : computeTotals(cur);
+    const itemCount = (cur.projects || []).reduce((a, p) => a + (p.subitems || []).length, 0)
+      + (cur.dev || []).length + (cur.etc || []).length + (cur.vacation || []).length;
+    const openT = openTodos();
+    const overdueT = openT.filter(x => x.due < DEMO_TODAY).length;
+    const todayT = openT.filter(x => x.due === DEMO_TODAY).length;
+    const projAvg = projects.length
+      ? Math.round(projects.reduce((n, p) => n + p.pct, 0) / projects.length) : 0;
+
+    const metrics = [
+      metricTileHtml({ k:"이번 주 시간", v: t ? fmtHours(t.totalHours) : "—", unit: t ? "h" : "",
+                       sub: t ? `보고 항목 ${itemCount}건` : "아직 작성 전" }),
+      metricTileHtml({ k:"이번 주 맨위크", v: t ? t.manWeek : "—", low: !!(t && t.low),
+                       sub: t ? (t.low ? `기준 1.00 · ${LOW_MANWEEK_THRESHOLD} 미만` : "기준 1.00") : "아직 작성 전" }),
+      metricTileHtml({ k:"기한 지난 할 일", v: overdueT, unit:"건", low: overdueT > 0,
+                       sub: todayT ? `오늘 마감 ${todayT}건` : "오늘 마감 없음" }),
+      metricTileHtml({ k:"진행중 프로젝트", v: projects.length, unit:"개",
+                       sub: projects.length ? `평균 진행률 ${projAvg}%` : "진행중 없음" }),
+    ].join("");
+
+    // ③ 모자이크 조립. **넣는 순서가 곧 배치**다(.bento 주석의 계산 참고) — 순서를 바꾸면 구도가 무너진다.
+    // 큰 타일(오늘 한 일 / TODO)이 매일 손대는 것, 중간 타일(맨위크 / 진행중)이 주 단위로 훑는 것,
+    // 작은 타일이 한 번 쳐다보고 마는 것. 크기 자체가 "얼마나 자주 쓰는가"를 말한다.
+    const recent5 = past.slice(0, RECENT_REPORTS_ON_DASH);
+    dashboardView.innerHTML = `
+      <div class="dash-wrap">
+        <div class="bento">
+          ${heroTileHtml()}
+          ${metrics}
+          ${dailyCaptureCardHtml()}
+          ${todoCardHtml()}
+          <div class="card tile t-mw">
+            <span class="kicker">최근 ${RECENT_WEEKS_FOR_AVG}주 평균 맨위크</span>
+            <div class="mw-big tabular ${avgLow ? "low" : ""}">${avg.toFixed(2)}</div>
+            <div class="mw-sub">기준 1.00 · ${LOW_MANWEEK_THRESHOLD} 미만이면 낮음으로 표시</div>
+            <div class="tile-body"><div class="mw-weeks">${weekRows}</div></div>
+          </div>
+          <div class="card tile t-proj">
+            <div class="card-head">
+              <div class="card-title"><h2>진행중인 프로젝트</h2><span class="count">${projects.length}건</span></div>
+            </div>
+            <div class="tile-body">${projectRows}</div>
+          </div>
+        </div>
+        <!-- 과거 보고서 = 모자이크를 받치는 가로로 긴 타일. 카드를 누르면 그 주의 작성(수정) 화면으로 간다. -->
+        <div class="bento bento-foot">
+          <div class="card tile t-hist">
+            <div class="card-head">
+              <div class="card-title"><h2>과거 보고서</h2><span class="count">${past.length}개</span></div>
+              ${past.length > recent5.length ? `<button class="link-more" id="moreHistBtn">전체 보기 ${ICON_ARROW}</button>` : ""}
+            </div>
+            <div class="dash-list flush" id="dashHistList">
+              ${recent5.length ? recent5.map(({ w, idx }) => histCardHtml(w, idx)).join("") : `<p class="empty-hint">아직 제출된 보고서가 없습니다.</p>`}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    wireHistCards($("#dashHistList"));
+    wireDashDailyEvents();
+    wireTodoEvents();
+    $("#moreHistBtn")?.addEventListener("click", () => { histSub = "reports"; switchTab("history"); });
+    $("#heroActionBtn").addEventListener("click", () => {
+      weekIdx = CURRENT_IDX;
+      // "신규 작성" = 이번 주 초안을 (이월 항목까지 채워서) 만들고 바로 작성 화면으로 — 빈 화면을 한 번 더 거치지 않는다
+      if (WEEKS[CURRENT_IDX].status === "empty"){
+        const draft = buildCarriedOverDraft(WEEKS[CURRENT_IDX - 1], cur);
+        WEEKS[CURRENT_IDX] = draft;
+        switchTab("write");
+        showToast(draft.projects.length || draft.dev.length ? "보고서 초안을 만들었어요 (이월 항목 포함)" : "보고서 초안을 만들었어요");
+        return;
+      }
+      switchTab("write");
+    });
+  }
+
+  /** 카드 제목 칩(오늘 N건 · Xh)과 하단 요약(이번 주 N건 · Xh)만 갱신 — 목록을 다시 그리면 편집 중이던 칸이 날아간다. */
+  function refreshDashDailyTotals(){
+    const all = dailyOf(WEEKS[CURRENT_IDX]);
+    const today = all.filter(e => e.date === DEMO_TODAY);
+    const th = hoursTag(today), wh = hoursTag(all);
+    const chip = dashboardView.querySelector(".dash-daily .count");
+    if (chip) chip.textContent = `${today.length}건${th ? " · " + th : ""}`;
+    const foot = dashboardView.querySelector(".dash-daily .daily-foot > span:first-child");
+    if (foot) foot.innerHTML = `이번 주 기록 <b>${all.length}</b>건${wh ? ` · <b class="tabular">${wh}</b>` : ""}`;
+  }
+
+  function wireDashDailyEvents(){
+    const input = $("#quickAddInput");
+    const add = () => {
+      if (!addDaily(DEMO_TODAY, input.value, $("#quickAddHours").value)) return;
+      renderDashboard();
+      $("#quickAddInput").focus();   // 연달아 여러 건 적는 흐름을 끊지 않는다
+    };
+    input?.addEventListener("keydown", ev => { if (ev.key === "Enter") add(); });
+    // 시간 칸에서 Enter를 쳐도 같은 동작이어야 한다 — 텍스트→시간 순으로 Tab 하고 그대로 Enter 치는 흐름이 자연스럽다
+    $("#quickAddHours")?.addEventListener("keydown", ev => { if (ev.key === "Enter") add(); });
+    $("#quickAddBtn")?.addEventListener("click", add);
+
+    // 대시보드의 '오늘' 기록들은 날짜 헤더 없이 바로 놓이므로, 합계는 카드 제목의 칩과 하단 요약이 대신 받는다
+    wireDailyFields(dashboardView, el => { refreshDaySum(el); refreshDashDailyTotals(); });
+    dashboardView.querySelectorAll("[data-daily-remove]").forEach(btn => btn.addEventListener("click", () => {
+      removeDaily(Number(btn.closest("[data-daily]").dataset.daily));
+      renderDashboard();
+    }));
+
+    $("#toWriteFromDailyBtn")?.addEventListener("click", () => { weekIdx = CURRENT_IDX; switchTab("write"); });
+    $("#toRecordsBtn")?.addEventListener("click", () => { histSub = "records"; switchTab("history"); });
+  }
+
   // ---------- tabs / week pager ----------
-  $("#tabWriteBtn").addEventListener("click", () => switchTab("write"));
-  $("#tabHistoryBtn").addEventListener("click", () => switchTab("history"));
+  const TABS = {
+    dash:    ["#dashboardView", "#tabDashBtn",    renderDashboard],
+    write:   ["#writeView",     "#tabWriteBtn",   renderWrite],
+    history: ["#historyView",   "#tabHistoryBtn", renderHistory],
+  };
+  Object.entries(TABS).forEach(([key, [, btn]]) => $(btn).addEventListener("click", () => switchTab(key)));
+
   function switchTab(tab){
-    const isWrite = tab === "write";
-    $("#writeView").classList.toggle("active", isWrite);
-    $("#historyView").classList.toggle("active", !isWrite);
-    $("#tabWriteBtn").classList.toggle("active", isWrite);
-    $("#tabHistoryBtn").classList.toggle("active", !isWrite);
-    $("#tabWriteBtn").setAttribute("aria-selected", isWrite);
-    $("#tabHistoryBtn").setAttribute("aria-selected", !isWrite);
-    if (isWrite) renderWrite(); else renderHistory();
+    Object.entries(TABS).forEach(([key, [view, btn]]) => {
+      const on = key === tab;
+      $(view).classList.toggle("active", on);
+      $(btn).classList.toggle("active", on);
+      $(btn).setAttribute("aria-selected", String(on));
+    });
+    // 주차 페이저는 "작성"에서만 의미가 있다
+    $("#pager").style.visibility = tab === "write" ? "visible" : "hidden";
+    if (tab !== "write") document.body.classList.remove("wide");
+    TABS[tab][2]();
+    window.scrollTo({ top: 0 });
   }
 
   $("#prevWeekBtn").addEventListener("click", () => { if (weekIdx > 0){ weekIdx--; renderWrite(); } });
@@ -1000,7 +2252,7 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
   }
 
-  renderWrite();
-  renderHistory();
+  // 첫 진입은 대시보드.
+  switchTab("dash");
 })();
 </script>

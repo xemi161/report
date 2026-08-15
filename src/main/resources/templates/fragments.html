@@ -13,9 +13,10 @@
 </th:block>
 
 <!--
-  상단 헤더: 브랜드 · 주차 페이저 · 탭.
+  상단 헤더: 브랜드 · 주차 페이저 · 탭(대시보드/작성/히스토리).
   주차 이동과 탭 전환은 페이지 전체가 바뀌므로 htmx가 아니라 평범한 링크다.
-  히스토리 탭에는 주차 개념이 없어 페이저를 숨긴다.
+  주차 페이저는 "작성" 탭에서만 의미가 있다 — 대시보드는 항상 이번 주,
+  히스토리의 "한 일 기록" 뷰는 축이 월이라 자기 화면 안에 별도 페이저(.pager.inline)를 갖는다.
 -->
 <header th:fragment="header(activeTab, period, prevWeek, nextWeek)">
     <div class="header-inner">
@@ -25,7 +26,7 @@
                   th:text="${settings.name} + ' · ' + ${settings.role}">정준호 · 파트원</span>
         </div>
 
-        <div class="pager" th:if="${period != null}">
+        <div class="pager" th:if="${activeTab == 'write' and period != null}">
             <a th:href="@{/entry(week=${prevWeek})}" aria-label="이전 주" title="이전 주">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
@@ -40,15 +41,52 @@
             </a>
         </div>
 
+        <!--
+          히스토리 탭 라벨에서 건수를 뺐다 — 이 탭이 "과거 보고서"와 "한 일 기록" 두 뷰를 담게 되면서
+          숫자 하나가 무엇의 건수인지 모호해졌다. 건수는 탭 안쪽 서브 세그먼트가 각각 들고 있다.
+        -->
         <div class="seg" role="tablist">
+            <a th:href="@{/}" th:classappend="${activeTab == 'dashboard'} ? ' active'"
+               role="tab" th:attr="aria-selected=${activeTab == 'dashboard'}">대시보드</a>
             <a th:href="@{/entry}" th:classappend="${activeTab == 'write'} ? ' active'"
                role="tab" th:attr="aria-selected=${activeTab == 'write'}">작성</a>
             <a th:href="@{/history}" th:classappend="${activeTab == 'history'} ? ' active'"
-               role="tab" th:attr="aria-selected=${activeTab == 'history'}"
-               th:text="'히스토리 · ' + ${historyCount}">히스토리 · 0</a>
+               role="tab" th:attr="aria-selected=${activeTab == 'history'}">히스토리</a>
         </div>
     </div>
 </header>
+
+<!--
+  제출된 주 카드 한 장. 대시보드("과거 보고서" 최근 5개)와 히스토리 탭(전체 목록)이 같은 컴포넌트를 쓴다.
+  카드 전체가 그 주의 작성 화면으로 가는 링크다 — 제출된 주도 계속 수정할 수 있으므로
+  읽기 전용 상세 화면을 따로 두지 않는다.
+-->
+<a th:fragment="reportCard(r, lowThreshold)" class="hist-card" th:href="@{/entry(week=${r.weekStart})}">
+    <div class="hist-summary">
+        <div class="low-stripe" th:if="${r.totalManWeek.compareTo(lowThreshold) < 0}"></div>
+        <div class="hist-left">
+            <div class="wk">
+                <span th:text="${r.weekLabel}">8월 1주</span>
+                <span class="badge carry" th:if="${r.totalManWeek.compareTo(lowThreshold) < 0}">맨위크 낮음</span>
+            </div>
+            <div class="rng"
+                 th:text="${#temporals.format(r.weekStart, 'MM.dd')} + '(금) ~ ' + ${#temporals.format(r.weekEnd, 'MM.dd')} + '(목)'">기간</div>
+        </div>
+        <div class="hist-right">
+            <div class="hist-metric">
+                <div class="n tabular" th:text="${r.totalHoursDisplay()} + 'h'">0h</div>
+                <div class="l">총 시간</div>
+            </div>
+            <div class="hist-metric" th:classappend="${r.totalManWeek.compareTo(lowThreshold) < 0} ? ' low'">
+                <div class="n tabular" th:text="${r.totalManWeek}">0.00</div>
+                <div class="l">맨위크</div>
+            </div>
+            <span class="chev">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+        </div>
+    </div>
+</a>
 
 </body>
 </html>

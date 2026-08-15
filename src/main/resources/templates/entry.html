@@ -1,13 +1,35 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head('작성')}"></head>
-<body>
+<!--
+  좌우 분할이 켜지면 페이지 폭을 넓힌다(body.wide → main 1140px에서 1670px).
+  그대로 두면 오른쪽 항목 행(티켓·제목·구분·시간·일수·진행률·배지)이 두 줄로 접혀
+  "한 줄 = 한 항목"이라는 이 화면의 시각 규칙이 깨진다.
+  패널을 숨기면 app.js가 이 클래스를 떼어 기존 단일 컬럼 화면으로 돌아간다.
+-->
+<body class="wide">
 <header th:replace="~{fragments :: header('write', ${period}, ${prevWeek}, ${nextWeek})}"></header>
 
 <main>
+  <!--
+    좌 = 그 주에 한 일(참고 자료) / 우 = 주간보고(결과물). 둘 사이에 자동 연결은 없다 —
+    분할의 목적은 옮기는 동선이 아니라 "보면서 쓰는" 시야 확보다.
+    기록은 보고서 존재 여부·제출 상태와 무관하므로 빈 상태(report == null)에서도 패널은 그대로 뜬다.
+  -->
+  <div class="split" id="splitLayout">
+    <div th:replace="~{fragments-daily :: weekPanel}"></div>
+
+    <div class="split-main">
+        <!-- 패널을 숨긴 동안에만 보이는 되돌리기 버튼(순수 화면 동작이라 app.js 담당) -->
+        <button type="button" class="ghost" data-panel-show hidden style="margin-top:0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 3.5h9L19 7.5v13H6z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 11h7M9 14.5h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            한 일 기록 보기
+        </button>
+
     <!--
       htmx가 통째로 갈아끼우는 단위. 항목을 더하거나 지우면 카드 건수·통계·빈 상태가
       한꺼번에 맞아떨어져야 해서 이 섹션 전체를 다시 렌더링한다.
+      (일일 기록은 보고서 데이터와 무관하므로 이 단위에 들어가지 않는다 — 좌측 패널만 따로 교체된다.)
     -->
     <section id="writeView" class="view active" th:fragment="writeView">
 
@@ -157,6 +179,8 @@
             </div>
         </th:block>
     </section>
+    </div>
+  </div>
 </main>
 
 <div id="modalHost"></div>

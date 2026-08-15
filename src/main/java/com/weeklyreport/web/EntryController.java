@@ -24,6 +24,7 @@ import com.weeklyreport.domain.WeeklyReport;
 import com.weeklyreport.domain.enums.Group;
 import com.weeklyreport.repository.AppSettingsRepository;
 import com.weeklyreport.repository.ProjectRepository;
+import com.weeklyreport.service.DailyNoteService;
 import com.weeklyreport.service.EntryService;
 import com.weeklyreport.service.MdExportService;
 import com.weeklyreport.service.WeekLabelService;
@@ -44,20 +45,24 @@ public class EntryController {
     private final ProjectRepository projectRepository;
     private final AppSettingsRepository appSettingsRepository;
     private final MdExportService mdExportService;
+    private final DailyNoteService dailyNoteService;
 
     public EntryController(EntryService entryService,
                             ProjectRepository projectRepository,
                             AppSettingsRepository appSettingsRepository,
-                            MdExportService mdExportService) {
+                            MdExportService mdExportService,
+                            DailyNoteService dailyNoteService) {
         this.entryService = entryService;
         this.projectRepository = projectRepository;
         this.appSettingsRepository = appSettingsRepository;
         this.mdExportService = mdExportService;
+        this.dailyNoteService = dailyNoteService;
     }
 
     // ---------- 화면 ----------
 
-    @GetMapping({"/", "/entry"})
+    // "/"는 대시보드(DashboardController)가 가져갔다 — 첫 진입 화면은 더 이상 작성 탭이 아니다.
+    @GetMapping("/entry")
     public String entry(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate week,
                         Model model) {
         populateWriteView(model, week);
@@ -229,6 +234,10 @@ public class EntryController {
         model.addAttribute("report", report);
         model.addAttribute("activeTab", "write");
 
+        // 좌측 "이번 주에 한 일" 패널. 기록은 보고서 존재 여부·제출 상태와 무관하므로
+        // 빈 상태 화면(report == null)에서도 그대로 채운다.
+        DailyNoteController.populateWeekPanel(model, dailyNoteService, period);
+
         if (report == null) {
             model.addAttribute("projectCards", List.of());
             model.addAttribute("devItems", List.of());
@@ -242,7 +251,10 @@ public class EntryController {
         model.addAttribute("etcItems", filterGroup(report, Group.ETC));
         model.addAttribute("vacationItems", filterGroup(report, Group.VACATION));
         model.addAttribute("avgManWeek", entryService.recentAverageManWeek());
-        model.addAttribute("activeProjectCount", projectRepository.findByActiveTrueOrderByNameAsc().size());
+        // 대시보드의 "진행중인 프로젝트"와 같은 기준(active AND 최근 진행률 < 100%)으로 통일했다 —
+        // 예전엔 이 화면만 단순 active 개수를 썼는데, 대시보드가 들어오며 같은 이름의 지표가
+        // 화면마다 다르게 계산되는 모순이 생겨 EntryService.activeProjectsWithProgress()로 합쳤다.
+        model.addAttribute("activeProjectCount", entryService.activeProjectsWithProgress().size());
     }
 
     /**
