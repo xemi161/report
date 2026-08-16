@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>주간업무보고 · 대시보드 시안 ⑦ 프로젝트 중심</title>
+<style>
+  /* ===========================================================
+     색상 토큰 — design/weekly-report-mockup.html에서 그대로 가져옴.
+     새 oklch 값을 만들지 않는다. 라이트 전용(다크모드 배제, 사용자 확정).
+     =========================================================== */
+  :root{
+    --bg: oklch(98% 0.005 250);
+    --surface: oklch(100% 0 0);
+    --surface-sunken: oklch(97% 0.006 250);
+    --border: oklch(90% 0.012 260);
+    --border-soft: oklch(94% 0.008 260);
+    --text: oklch(22% 0.02 260);
+    --text-muted: oklch(48% 0.02 260);
+    --text-faint: oklch(65% 0.012 260);
+    --accent: oklch(55% 0.16 260);
+    --accent-hover: oklch(48% 0.16 260);
+    --accent-soft: oklch(95% 0.03 260);
+    --accent-soft-fg: oklch(45% 0.16 260);
+    --warn-bg: oklch(94% 0.08 80);
+    --warn-fg: oklch(45% 0.14 70);
+    --danger-bg: oklch(93% 0.09 25);
+    --danger-fg: oklch(48% 0.17 25);
+    --danger-border: oklch(80% 0.12 25);
+    --good-bg: oklch(93% 0.06 150);
+    --good-fg: oklch(42% 0.13 150);
+    --shadow: 0 1px 2px oklch(0% 0 0 / 0.04);
+    --shadow-sm: 0 4px 16px oklch(22% 0.02 260 / 0.07);
+    --shadow-lg: 0 16px 40px oklch(20% 0.02 260 / 0.14);
+  }
+  /* 뷰어/OS 다크 설정과 무관하게 항상 이 톤 — 기준 목업과 동일한 고정 블록 */
+  :root[data-theme="dark"], :root[data-theme="light"]{
+    --bg: oklch(98% 0.005 250); --surface: oklch(100% 0 0); --surface-sunken: oklch(97% 0.006 250);
+    --border: oklch(90% 0.012 260); --border-soft: oklch(94% 0.008 260);
+    --text: oklch(22% 0.02 260); --text-muted: oklch(48% 0.02 260); --text-faint: oklch(65% 0.012 260);
+    --accent: oklch(55% 0.16 260); --accent-hover: oklch(48% 0.16 260);
+    --accent-soft: oklch(95% 0.03 260); --accent-soft-fg: oklch(45% 0.16 260);
+    --warn-bg: oklch(94% 0.08 80); --warn-fg: oklch(45% 0.14 70);
+    --danger-bg: oklch(93% 0.09 25); --danger-fg: oklch(48% 0.17 25); --danger-border: oklch(80% 0.12 25);
+    --good-bg: oklch(93% 0.06 150); --good-fg: oklch(42% 0.13 150);
+    --shadow: 0 1px 2px oklch(0% 0 0 / 0.04); --shadow-sm: 0 4px 16px oklch(22% 0.02 260 / 0.07);
+    --shadow-lg: 0 16px 40px oklch(20% 0.02 260 / 0.14);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",Helvetica,Arial,sans-serif;
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  button,input,select,textarea{font:inherit;color:inherit;}
+  input,select{background:transparent;}
+  ::placeholder{color:var(--text-faint);}
+  .tabular{font-variant-numeric:tabular-nums;}
+  @media (prefers-reduced-motion: reduce){ *{animation-duration:.01ms !important; transition-duration:.01ms !important;} }
+
+  /* ---------- 시안 선택기(이 탐색용 파일에만 있는 크롬 — 실제 화면 요소 아님) ---------- */
+  .picker{position:sticky; top:0; z-index:50; background:var(--surface); border-bottom:1px solid var(--border-soft);}
+  .picker-inner{max-width:1240px; margin:0 auto; padding:14px 28px 12px;}
+  .picker-top{display:flex; align-items:baseline; gap:12px; margin-bottom:11px; flex-wrap:wrap;}
+  .picker-top .t{font-size:16px; font-weight:700; letter-spacing:-.015em;}
+  .picker-top .s{font-size:12px; color:var(--text-muted);}
+  .picker-top .kb{margin-left:auto; font-size:11.5px; color:var(--text-faint);}
+  .chips{display:flex; flex-wrap:wrap; gap:5px;}
+  .chips button{
+    border:1px solid var(--border-soft); background:var(--surface); color:var(--text-muted);
+    padding:6px 12px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer;
+    transition:background .12s,color .12s,border-color .12s;
+  }
+  .chips button:hover{background:var(--surface-sunken); color:var(--text);}
+  .chips button.on{background:var(--accent); border-color:var(--accent); color:oklch(100% 0 0);}
+  .chips button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  .desc{margin-top:11px; font-size:12.5px; color:var(--text-muted); line-height:1.55;}
+  .desc b{color:var(--text); font-weight:600;}
+
+  /* 각 시안이 "앱 안"이라는 걸 보여주는 가짜 앱 헤더 — 3탭(대시보드/작성/히스토리) 확정 IA */
+  .appbar{background:var(--surface); border-bottom:1px solid var(--border-soft);}
+  .appbar-inner{max-width:1140px; margin:0 auto; padding:14px 28px; display:flex; align-items:center; gap:20px;}
+  .brand{display:flex; align-items:baseline; gap:9px; margin-right:auto;}
+  .brand .name{font-size:18px; font-weight:700; letter-spacing:-.015em;}
+  .brand .who{font-size:12.5px; color:var(--text-muted);}
+  .seg{display:flex; gap:3px; background:var(--surface-sunken); padding:3px; border-radius:12px; border:1px solid var(--border-soft);}
+  .seg button{
+    padding:6px 14px; border:none; border-radius:9px; font-size:12.5px; font-weight:600; cursor:default;
+    background:transparent; color:var(--text-muted);
+  }
+  .seg button.active{background:var(--surface); color:var(--text); box-shadow:var(--shadow);}
+
+  main{max-width:1140px; margin:0 auto; padding:28px 28px 90px;}
+  main.wide{max-width:1240px;}
+
+  /* ---------- 공통 컴포넌트 (기준 목업과 동일) ---------- */
+  .card{
+    background:var(--surface); border:1px solid var(--border-soft); border-radius:18px; padding:26px 28px;
+    transition:box-shadow .15s;
+  }
+  .card:hover{box-shadow:var(--shadow-sm);}
+  .card.tight{padding:20px 22px;}
+  .card-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;}
+  .card-title{display:flex; align-items:center; gap:9px;}
+  .card-title h2{font-size:15px; font-weight:600; letter-spacing:-.01em; margin:0;}
+  .card-title .count{
+    font-size:11.5px; font-weight:700; color:var(--accent-soft-fg); background:var(--accent-soft);
+    padding:2px 9px; border-radius:999px;
+  }
+  .kicker{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-faint);}
+  .badge{font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;}
+  .badge.carry{background:var(--warn-bg); color:var(--warn-fg);}
+  .badge.done{background:var(--good-bg); color:var(--good-fg);}
+  .badge.draft{background:var(--accent-soft); color:var(--accent-soft-fg);}
+  .badge.idle{background:var(--surface-sunken); color:var(--text-muted);}
+  .bar{height:5px; border-radius:999px; background:var(--surface-sunken); overflow:hidden;}
+  .bar > i{display:block; height:100%; border-radius:999px; background:var(--accent);}
+  .bar.low > i{background:var(--danger-border);}
+  .btn{
+    border:none; background:var(--accent); color:oklch(100% 0 0); padding:11px 22px; border-radius:12px;
+    font-size:13.5px; font-weight:700; cursor:pointer; transition:background .12s,box-shadow .12s;
+  }
+  .btn:hover{background:var(--accent-hover); box-shadow:var(--shadow-sm);}
+  .btn.sm{padding:8px 16px; font-size:12.5px; border-radius:10px;}
+  .btn.outline{background:transparent; border:1px solid var(--border); color:var(--text);}
+  .btn.outline:hover{background:var(--surface-sunken); box-shadow:none;}
+  .ghost{
+    border:none; background:transparent; color:var(--text-muted); padding:7px 12px; border-radius:10px;
+    font-size:12.5px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition:background .12s,color .12s;
+  }
+  .ghost:hover{background:var(--surface-sunken); color:var(--accent);}
+  .link-more{
+    border:none; background:transparent; color:var(--text-muted); cursor:pointer;
+    font-size:12.5px; font-weight:600; padding:6px 10px; border-radius:9px;
+    display:inline-flex; align-items:center; gap:5px; transition:background .12s,color .12s;
+  }
+  .link-more:hover{background:var(--surface-sunken); color:var(--accent);}
+  .section-head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .section-head h2{font-size:15px; font-weight:700; margin:0; letter-spacing:-.01em;}
+  .stack{display:flex; flex-direction:column; gap:18px;}
+  .dash-list{display:flex; flex-direction:column; gap:12px;}
+
+  /* 통계 타일 */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;}
+  .stat{background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; padding:18px 20px; display:flex; flex-direction:column; gap:6px;}
+  .stat .k{font-size:12px; color:var(--text-muted);}
+  .stat .v{font-size:26px; font-weight:700; letter-spacing:-.02em;}
+  .stat .v small{font-size:13px; font-weight:600; color:var(--text-muted); margin-left:3px;}
+  .stat .v.low{color:var(--danger-fg);}
+  .stat .s{font-size:11.5px; color:var(--text-faint);}
+
+  /* 과거 제출본 행 */
+  .hist-card{background:var(--surface); border:1px solid var(--border-soft); border-radius:18px; overflow:hidden; cursor:pointer; transition:border-color .12s, box-shadow .15s;}
+  .hist-card:hover{border-color:var(--text-faint); box-shadow:var(--shadow-sm);}
+  .hist-summary{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px;}
+  .hist-left{display:flex; flex-direction:column; gap:3px;}
+  .hist-left .wk{font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .hist-left .rng{font-size:12px; color:var(--text-muted);}
+  .hist-right{display:flex; align-items:center; gap:18px;}
+  .hist-metric{text-align:right;}
+  .hist-metric .n{font-size:15px; font-weight:700;}
+  .hist-metric .l{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em;}
+  .hist-metric.low .n{color:var(--danger-fg);}
+  .chev{flex-shrink:0; color:var(--text-faint);}
+  /* 카드 안에 카드가 겹치지 않도록: 테두리를 떼고 얇은 구분선으로 */
+  .flush .hist-card{border:none; border-radius:12px; box-shadow:none;}
+  .flush .hist-card + .hist-card{border-top:1px solid var(--border-soft);}
+  .flush .hist-card:hover{background:var(--surface-sunken);}
+  .flush .hist-summary{padding:13px 10px;}
+
+  /* 진행중 프로젝트 행 */
+  .proj-row{display:flex; flex-direction:column; gap:8px; padding:14px 0; border-bottom:1px solid var(--border-soft);}
+  .proj-row:last-child{border-bottom:none;}
+  .proj-top{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+  .proj-top .nm{font-size:13.5px; font-weight:600;}
+  .proj-top .tk{font-size:11.5px; color:var(--text-muted); background:var(--surface-sunken); padding:2px 9px; border-radius:999px;}
+  .proj-top .pc{margin-left:auto; font-size:13px; font-weight:700;}
+  .proj-meta{font-size:11.5px; color:var(--text-faint);}
+
+  /* 맨위크 */
+  .mw-big{font-size:34px; font-weight:700; letter-spacing:-.03em; line-height:1.15; margin-top:8px;}
+  .mw-big.low{color:var(--danger-fg);}
+  .mw-sub{font-size:12px; color:var(--text-muted); margin-top:3px;}
+  .mw-weeks{display:flex; flex-direction:column; gap:12px; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-soft);}
+  .mw-week{display:flex; flex-direction:column; gap:6px;}
+  .mw-week .top{display:flex; justify-content:space-between; align-items:baseline; font-size:12px;}
+  .mw-week .top .lb{color:var(--text-muted);}
+  .mw-week .top .vl{font-weight:700;}
+  .mw-week .top .vl.low{color:var(--danger-fg);}
+
+  /* 일일 기록 */
+  .day-group{margin-top:14px;}
+  .day-group:first-child{margin-top:6px;}
+  .day-head{display:flex; align-items:center; gap:8px; padding-bottom:5px; border-bottom:1px solid var(--border-soft);
+    font-size:10.5px; font-weight:700; letter-spacing:.04em; color:var(--text-faint);}
+  .day-head .today-chip{background:var(--accent-soft); color:var(--accent-soft-fg); padding:1px 7px; border-radius:999px; font-size:10px;}
+  .day-head .day-sum{margin-left:auto; font-weight:700; letter-spacing:0; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .daily-item{display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid var(--border-soft); font-size:13px;}
+  .daily-item:last-child{border-bottom:none;}
+  .daily-item .tx{flex:1; min-width:0; padding:2px 0;}
+  .daily-item .hh{flex:none; font-size:12.5px; font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .daily-item .hh.none{color:var(--text-faint); font-weight:400;}
+  .quick{display:flex; align-items:center; gap:8px; margin-top:12px; padding:8px 10px; border:1.5px dashed var(--border); border-radius:12px;}
+  .quick input[type=text]{flex:1; border:1px solid transparent; border-radius:8px; padding:5px 6px; font-size:13px;}
+  .quick input[type=text]:hover{background:var(--surface-sunken);}
+  .quick input[type=text]:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+  .quick input[type=number]{width:56px; text-align:right; border:1px solid transparent; border-radius:8px; padding:5px 6px; font-size:13px;}
+  .quick input[type=number]:hover{background:var(--surface-sunken);}
+  .quick input[type=number]:focus{border-color:var(--accent); background:var(--surface-sunken); outline:none;}
+  .quick .unit{color:var(--text-faint); font-size:12.5px;}
+
+  /* 요일 스트립 */
+  .wk-days{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:8px;}
+  .wk-day{border:1px solid var(--border-soft); border-radius:12px; padding:9px 5px 8px; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0;}
+  .wk-day .dw{font-size:11px; font-weight:700; color:var(--text-faint);}
+  .wk-day .bar-v{width:100%; height:38px; border-radius:8px; background:var(--surface-sunken); display:flex; align-items:flex-end; overflow:hidden;}
+  .wk-day .bar-v > i{display:block; width:100%; background:var(--accent); border-radius:8px;}
+  .wk-day .hh{font-size:11px; font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .wk-day.empty .hh{color:var(--text-faint); font-weight:400;}
+  .wk-day.today{border-color:var(--accent);}
+  .wk-day.today .dw{color:var(--accent-soft-fg);}
+
+  /* 보고 항목 행(표형 시안에서 사용) */
+  .irow{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft); font-size:13px;}
+  .irow:last-child{border-bottom:none;}
+  .irow .tk{width:112px; flex:none; color:var(--text-muted); font-size:12px;}
+  .irow .ti{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .irow .ph{width:64px; flex:none; color:var(--text-muted); font-size:12px;}
+  .irow .hr{width:52px; flex:none; text-align:right; font-variant-numeric:tabular-nums;}
+  .irow .dy{width:44px; flex:none; text-align:right; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .irow .pcw{width:104px; flex:none; display:flex; align-items:center; gap:7px;}
+  .irow .pcw .bar{flex:1;}
+  .irow .pcw .n{width:34px; text-align:right; font-size:12px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .irow .bd{width:44px; flex:none; text-align:right;}
+  .thead{display:flex; align-items:center; gap:10px; padding:0 0 8px; border-bottom:1px solid var(--border-soft);
+    font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint);}
+  .thead > span{white-space:nowrap;}
+
+  /* =========================================================
+     ① Hero + 스택 (현행 근접)
+     ========================================================= */
+  .c1 .hero{display:flex; align-items:flex-start; justify-content:space-between; gap:24px; flex-wrap:wrap;}
+  .c1 .hero-left{display:flex; flex-direction:column; gap:6px;}
+  .c1 .hero-left .wk{font-size:22px; font-weight:700; letter-spacing:-.025em; display:flex; align-items:center; gap:10px;}
+  .c1 .hero-left .rng{font-size:12.5px; color:var(--text-muted);}
+  .c1 .hero-metrics{display:flex; gap:28px; align-items:flex-end; margin-left:auto;}
+  .c1 .hm{text-align:right;}
+  .c1 .hm .v{font-size:26px; font-weight:700; letter-spacing:-.02em; line-height:1.1;}
+  .c1 .hm .v.low{color:var(--danger-fg);}
+  .c1 .hm .v small{font-size:13px; font-weight:600; color:var(--text-muted); margin-left:2px;}
+  .c1 .hm .k{font-size:11px; color:var(--text-faint);}
+  .c1 .two{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
+  @media (max-width:900px){ .c1 .two{grid-template-columns:1fr;} }
+
+  /* =========================================================
+     ② 벤토 모자이크 (v7 — 진행 중인 후보)
+     ========================================================= */
+  .c2 .bento{display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); grid-auto-rows:62px; gap:14px;}
+  .c2 .bento > *{min-width:0; min-height:0;}
+  .c2 .bento .card{padding:20px 22px;}
+  .c2 .t-hero{grid-column:span 6; grid-row:span 4; display:flex; flex-direction:column; gap:16px; justify-content:space-between;}
+  .c2 .t-metric{grid-column:span 3; grid-row:span 2;}
+  .c2 .t-daily{grid-column:span 8; grid-row:span 6;}
+  .c2 .t-todo{grid-column:span 4; grid-row:span 10;}
+  .c2 .t-mw{grid-column:span 4; grid-row:span 4;}
+  .c2 .t-proj{grid-column:span 4; grid-row:span 4;}
+  .c2 .t-hist{grid-column:1 / -1;}
+  .c2 .bento-foot{display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); gap:14px; margin-top:14px;}
+  .c2 .tile{display:flex; flex-direction:column;}
+  .c2 .tile-body{flex:1; min-height:0; overflow:auto; margin:0 -6px; padding:0 6px;}
+  .c2 .metric{display:flex; flex-direction:column; justify-content:space-between; gap:6px;}
+  .c2 .bento .card.metric{padding:16px 18px;}
+  .c2 .metric .v{font-size:40px; font-weight:700; letter-spacing:-.035em; line-height:1; display:flex; align-items:baseline; gap:3px;}
+  .c2 .metric .v u{font-size:14px; font-weight:600; color:var(--text-muted); text-decoration:none;}
+  .c2 .metric .s{font-size:11.5px; color:var(--text-muted);}
+  .c2 .metric.low .v{color:var(--danger-fg);}
+  .c2 .hero-title .wk{font-size:30px; font-weight:700; letter-spacing:-.03em; line-height:1.1;}
+  .c2 .todo-item{display:flex; align-items:flex-start; gap:7px; padding:6px 0; border-bottom:1px solid var(--border-soft); font-size:13px;}
+  .c2 .todo-item:last-child{border-bottom:none;}
+  .c2 .todo-item input{margin:4px 0 0; accent-color:var(--accent);}
+  .c2 .todo-item .tx{flex:1; min-width:0;}
+  .c2 .prio{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:999px; color:var(--text-faint); white-space:nowrap;}
+  .c2 .prio.high{background:var(--warn-bg); color:var(--warn-fg);}
+  @media (max-width:1180px){
+    .c2 .bento{grid-template-columns:repeat(6, minmax(0,1fr)); grid-auto-rows:auto;}
+    .c2 .bento > *{grid-row:auto !important;}
+    .c2 .t-hero, .c2 .t-daily, .c2 .t-todo{grid-column:span 6;}
+    .c2 .t-metric, .c2 .t-mw, .c2 .t-proj{grid-column:span 3;}
+    .c2 .tile-body{overflow:visible; margin:0; padding:0;}
+  }
+
+  /* =========================================================
+     ③ 서술형 브리핑 (Narrative)
+     ========================================================= */
+  .c3 .brief{padding:34px 36px;}
+  .c3 .brief p{font-size:19px; line-height:1.72; margin:0 0 12px; letter-spacing:-.01em; max-width:760px;}
+  .c3 .brief p:last-of-type{margin-bottom:0;}
+  .c3 .brief b{font-weight:700;}
+  .c3 .brief b.n{background:var(--accent-soft); color:var(--accent-soft-fg); padding:1px 7px; border-radius:8px;}
+  .c3 .brief b.warnv{background:var(--warn-bg); color:var(--warn-fg); padding:1px 7px; border-radius:8px;}
+  .c3 .brief b.lowv{background:var(--danger-bg); color:var(--danger-fg); padding:1px 7px; border-radius:8px;}
+  .c3 .brief-cta{display:flex; align-items:center; gap:8px; margin-top:24px; padding-top:20px; border-top:1px solid var(--border-soft);}
+  .c3 .evid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; align-items:start;}
+  @media (max-width:900px){ .c3 .evid{grid-template-columns:1fr;} }
+
+  /* =========================================================
+     ④ 좌측 요약 레일 + 우측 본문
+     ========================================================= */
+  .c4 .split{display:grid; grid-template-columns:300px minmax(0,1fr); gap:18px; align-items:start;}
+  .c4 .rail{position:sticky; top:16px; display:flex; flex-direction:column; gap:14px; padding:24px 22px;}
+  .c4 .rail .wk{font-size:24px; font-weight:700; letter-spacing:-.03em; line-height:1.15;}
+  .c4 .rail .rng{font-size:12px; color:var(--text-muted);}
+  .c4 .rail-metrics{display:flex; flex-direction:column; gap:0; margin-top:4px;}
+  .c4 .rm{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:11px 0; border-top:1px solid var(--border-soft);}
+  .c4 .rm .k{font-size:12px; color:var(--text-muted);}
+  .c4 .rm .v{font-size:20px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums;}
+  .c4 .rm .v.low{color:var(--danger-fg);}
+  .c4 .rm .v small{font-size:12px; color:var(--text-muted); font-weight:600; margin-left:2px;}
+  .c4 .rail .btn{width:100%; margin-top:4px;}
+  @media (max-width:900px){ .c4 .split{grid-template-columns:1fr;} .c4 .rail{position:static;} }
+
+  /* =========================================================
+     ⑤ 얇은 스탯바 + 표형 리스트
+     ========================================================= */
+  .c5 .statbar{display:flex; align-items:stretch; gap:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; overflow:hidden;}
+  .c5 .sb{flex:1; padding:16px 20px; border-right:1px solid var(--border-soft); display:flex; flex-direction:column; gap:3px; min-width:0;}
+  .c5 .sb:last-child{border-right:none;}
+  .c5 .sb .k{font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-faint);}
+  .c5 .sb .v{font-size:22px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums;}
+  .c5 .sb .v.low{color:var(--danger-fg);}
+  .c5 .sb .v small{font-size:12px; font-weight:600; color:var(--text-muted); margin-left:2px;}
+  .c5 .sb.cta{flex:none; display:flex; align-items:center; justify-content:center; padding:12px 18px; background:var(--surface-sunken);}
+  .c5 .grp{padding:14px 0 4px; font-size:12px; font-weight:700; color:var(--text-muted); display:flex; align-items:center; gap:8px;}
+  .c5 .grp .tk{font-size:11.5px; font-weight:600; color:var(--text-faint); background:var(--surface-sunken); padding:2px 8px; border-radius:999px;}
+  .c5 .grp .pc{margin-left:auto; font-weight:700; color:var(--text);}
+  .c5 .grp:first-child{padding-top:4px;}
+  .c5 .two{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:18px; align-items:start;}
+  @media (max-width:960px){ .c5 .two{grid-template-columns:1fr;} }
+
+  /* =========================================================
+     ⑥ 주간 캘린더 스트립 중심 (일일 기록이 주인공)
+     ========================================================= */
+  .c6 .cal{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:10px;}
+  .c6 .col{background:var(--surface); border:1px solid var(--border-soft); border-radius:14px; padding:12px 12px 10px; display:flex; flex-direction:column; gap:8px; min-height:230px; min-width:0;}
+  .c6 .col.today{border-color:var(--accent);}
+  .c6 .col.off{background:var(--surface-sunken); border-style:dashed;}
+  .c6 .col-head{display:flex; align-items:baseline; justify-content:space-between; gap:6px;}
+  .c6 .col-head .dw{font-size:12px; font-weight:700;}
+  .c6 .col.today .col-head .dw{color:var(--accent-soft-fg);}
+  .c6 .col-head .dt{font-size:10.5px; color:var(--text-faint); font-variant-numeric:tabular-nums;}
+  .c6 .col-sum{font-size:11px; font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  .c6 .note{font-size:12px; line-height:1.45; padding:7px 8px; border-radius:10px; background:var(--surface-sunken);}
+  .c6 .note .h{display:block; margin-top:3px; font-size:10.5px; font-weight:700; color:var(--text-faint); font-variant-numeric:tabular-nums;}
+  .c6 .col .add{margin-top:auto; border:1.5px dashed var(--border); background:transparent; color:var(--text-faint);
+    border-radius:10px; padding:6px; font-size:11.5px; font-weight:600; cursor:pointer;}
+  .c6 .col .add:hover{border-color:var(--accent); color:var(--accent);}
+  .c6 .below{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; align-items:start;}
+  @media (max-width:1080px){ .c6 .cal{grid-template-columns:repeat(4,minmax(0,1fr));} }
+  @media (max-width:900px){ .c6 .below{grid-template-columns:1fr;} }
+  @media (max-width:680px){ .c6 .cal{grid-template-columns:repeat(2,minmax(0,1fr));} }
+
+  /* =========================================================
+     ⑦ 프로젝트 중심 재편
+     ========================================================= */
+  .c7 .thin{display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:14px 22px;}
+  .c7 .thin .wk{font-size:15px; font-weight:700;}
+  .c7 .thin .m{font-size:12.5px; color:var(--text-muted);}
+  .c7 .thin .m b{color:var(--text); font-weight:700; font-variant-numeric:tabular-nums;}
+  .c7 .thin .m b.low{color:var(--danger-fg);}
+  .c7 .thin .sp{margin-left:auto;}
+  .c7 .pgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px;}
+  .c7 .pcard{display:flex; flex-direction:column; gap:14px;}
+  .c7 .ptop{display:flex; align-items:flex-start; gap:12px;}
+  .c7 .ring{flex:none; width:62px; height:62px; border-radius:50%; display:grid; place-items:center; position:relative;}
+  .c7 .ring > span{font-size:15px; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums;}
+  .c7 .pname{display:flex; flex-direction:column; gap:3px; min-width:0;}
+  .c7 .pname .nm{font-size:16px; font-weight:700; letter-spacing:-.015em;}
+  .c7 .pname .tk{font-size:11.5px; color:var(--text-muted); background:var(--surface-sunken); padding:2px 9px; border-radius:999px; align-self:flex-start;}
+  .c7 .pmeta{display:flex; gap:20px; padding:12px 0; border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);}
+  .c7 .pmeta div{display:flex; flex-direction:column; gap:2px;}
+  .c7 .pmeta .k{font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-faint);}
+  .c7 .pmeta .v{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums;}
+  .c7 .plist{display:flex; flex-direction:column;}
+  .c7 .pfoot{display:flex; gap:6px;}
+  .c7 .rest{display:grid; grid-template-columns:repeat(2,1fr); gap:18px; align-items:start;}
+  @media (max-width:900px){ .c7 .rest{grid-template-columns:1fr;} }
+
+  /* =========================================================
+     ⑧ 타임라인 / 피드 스트림
+     ========================================================= */
+  .c8 .feedwrap{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:20px; align-items:start;}
+  .c8 .aside{position:sticky; top:16px; display:flex; flex-direction:column; gap:14px;}
+  .c8 .feed{position:relative; padding-left:22px;}
+  .c8 .feed::before{content:""; position:absolute; left:5px; top:8px; bottom:8px; width:1px; background:var(--border-soft);}
+  .c8 .ev{position:relative; padding:0 0 18px 0;}
+  .c8 .ev::before{content:""; position:absolute; left:-21px; top:19px; width:9px; height:9px; border-radius:50%;
+    background:var(--surface); border:2px solid var(--border);}
+  .c8 .ev.accent::before{border-color:var(--accent); background:var(--accent);}
+  .c8 .ev.mark::before{border-color:var(--good-fg); background:var(--good-bg);}
+  .c8 .ev-day{font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-faint); margin-bottom:7px; display:flex; align-items:center; gap:8px;}
+  .c8 .ev-card{padding:16px 20px;}
+  .c8 .ev-card .ttl{font-size:13.5px; font-weight:600;}
+  .c8 .ev-card .sub{font-size:12px; color:var(--text-muted); margin-top:3px;}
+  .c8 .ev-card .row{display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; border-bottom:1px solid var(--border-soft);}
+  .c8 .ev-card .row:last-child{border-bottom:none;}
+  .c8 .ev-card .row .hh{margin-left:auto; font-size:12.5px; font-weight:700; color:var(--text-muted); font-variant-numeric:tabular-nums;}
+  @media (max-width:960px){ .c8 .feedwrap{grid-template-columns:1fr;} .c8 .aside{position:static;} }
+
+  /* =========================================================
+     ⑨ 단일 스크롤 롱폼 (카드 없는 문서형)
+     ========================================================= */
+  .c9 .doc{max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:0;}
+  .c9 .sec{padding:30px 0; border-top:1px solid var(--border-soft);}
+  .c9 .sec:first-child{border-top:none; padding-top:8px;}
+  .c9 .sec > h2{font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); margin:0 0 16px;}
+  .c9 .lede{font-size:30px; font-weight:700; letter-spacing:-.03em; line-height:1.25; margin:0 0 8px;}
+  .c9 .lede .st{font-size:13px; font-weight:600; vertical-align:middle; margin-left:8px;}
+  .c9 .subline{font-size:13px; color:var(--text-muted); margin:0 0 20px;}
+  .c9 .figs{display:flex; gap:36px; flex-wrap:wrap; margin-bottom:22px;}
+  .c9 .fig .v{font-size:32px; font-weight:700; letter-spacing:-.03em; line-height:1.1; font-variant-numeric:tabular-nums;}
+  .c9 .fig .v.low{color:var(--danger-fg);}
+  .c9 .fig .v small{font-size:14px; color:var(--text-muted); font-weight:600; margin-left:2px;}
+  .c9 .fig .k{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .c9 .flush .hist-summary{padding:13px 0;}
+  .c9 .flush .hist-card{border-radius:0;}
+  .c9 .flush .hist-card:hover{background:transparent; border-color:transparent;}
+
+  /* =========================================================
+     ⑩ 균일 위젯 그리드
+     ========================================================= */
+  .c10 .wgrid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px;}
+  .c10 .w{display:flex; flex-direction:column; height:302px; padding:20px 22px;}
+  .c10 .w-head{display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:12px; margin-bottom:2px; border-bottom:1px solid var(--border-soft);}
+  .c10 .w-head h2{font-size:12.5px; font-weight:700; letter-spacing:.02em; margin:0;}
+  .c10 .w-head .grip{color:var(--text-faint); font-size:11px; letter-spacing:.1em;}
+  .c10 .w-body{flex:1; min-height:0; overflow:auto; margin:0 -6px; padding:2px 6px;}
+  .c10 .w-body.center{display:flex; flex-direction:column; justify-content:center; gap:6px; overflow:visible;}
+  .c10 .big{font-size:46px; font-weight:700; letter-spacing:-.035em; line-height:1;}
+  .c10 .big.low{color:var(--danger-fg);}
+  .c10 .big small{font-size:15px; font-weight:600; color:var(--text-muted); margin-left:3px;}
+  .c10 .w-foot{padding-top:10px; margin-top:2px; border-top:1px solid var(--border-soft); font-size:11.5px; color:var(--text-faint);}
+  @media (max-width:1000px){ .c10 .wgrid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:680px){ .c10 .wgrid{grid-template-columns:1fr;} .c10 .w{height:auto; min-height:260px;} }
+</style>
+</head>
+<body>
+
+<div class="appbar">
+  <div class="appbar-inner">
+    <div class="brand"><span class="name">주간업무보고</span><span class="who">개발1파트 · 정상화</span></div>
+    <div class="seg">
+      <button class="active">대시보드</button><button>작성</button><button>히스토리</button>
+    </div>
+  </div>
+</div>
+
+<main id="stage" class=""></main>
+
+<script>
+
+/* =========================================================================
+   데모 데이터 — 10개 시안이 전부 이 하나를 공유한다(레이아웃만 다르다).
+   실제 서버가 대시보드에 내려주는 값 구성 그대로:
+   이번 주 hero / 최근 2주 평균 맨위크 / 진행중 프로젝트 / 과거 제출본 5건 / 일일 기록
+   ========================================================================= */
+const WEEK = { label:"8월 2주", range:"2026.08.07 (금) ~ 08.13 (목)", status:"draft",
+               hours:32, mw:0.80, items:7 };
+const AVG  = { value:0.92, weeks:[ {lb:"8월 1주", v:0.95}, {lb:"7월 5주", v:0.88} ] };
+
+const PROJECTS = [
+  { nm:"GTPP 고도화",       tk:"GTPP-1024",  pct:65, items:2, hours:12, last:"8월 2주" },
+  { nm:"사내포털 SSO 연동",  tk:"PORTAL-338", pct:40, items:2, hours:9,  last:"8월 2주" },
+  { nm:"배치 스케줄러 개선", tk:"BATCH-77",   pct:20, items:2, hours:9,  last:"8월 1주" }
+];
+
+const ITEMS = [
+  { tk:"GTPP-1024",  pj:"GTPP 고도화",      ti:"로그인 2차인증 개발",     ph:"개발",  h:8, d:2, pc:30 },
+  { tk:"GTPP-1024",  pj:"GTPP 고도화",      ti:"인증 화면 설계 리뷰",     ph:"설계",  h:4, d:1, pc:100 },
+  { tk:"PORTAL-338", pj:"사내포털 SSO 연동", ti:"SSO 토큰 갱신 구현",     ph:"개발",  h:6, d:2, pc:40 },
+  { tk:"PORTAL-338", pj:"사내포털 SSO 연동", ti:"인증 흐름 분석",         ph:"설계",  h:3, d:1, pc:40, carry:true },
+  { tk:"BATCH-77",   pj:"배치 스케줄러 개선", ti:"재처리 로직 수정",       ph:"개발",  h:6, d:2, pc:20 },
+  { tk:"BATCH-77",   pj:"배치 스케줄러 개선", ti:"배치 로그 분석",         ph:"분석",  h:3, d:1, pc:20, carry:true },
+  { tk:"",           pj:"기타",             ti:"코드리뷰 · 주간회의",     ph:"기타",  h:2, d:1, pc:null }
+];
+
+const HISTORY = [
+  { wk:"8월 1주", rng:"07.31 (금) ~ 08.06 (목)", h:38, mw:0.95 },
+  { wk:"7월 5주", rng:"07.24 (금) ~ 07.30 (목)", h:35, mw:0.88 },
+  { wk:"7월 4주", rng:"07.17 (금) ~ 07.23 (목)", h:41, mw:1.02 },
+  { wk:"7월 3주", rng:"07.10 (금) ~ 07.16 (목)", h:31, mw:0.78 },
+  { wk:"7월 2주", rng:"07.03 (금) ~ 07.09 (목)", h:37, mw:0.94 }
+];
+
+/* 일일 기록 — 최신순. 대시보드의 "오늘 한 일"은 이 중 앞 4일(오늘 + 최근 3일)만 본다. */
+const NOTES = [
+  { d:"08-13", dw:"목", today:true, list:[ {t:"GTPP 로그인 2차인증 API 연동", h:3}, {t:"배포 스크립트 점검", h:1} ] },
+  { d:"08-12", dw:"수", list:[ {t:"SSO 토큰 갱신 이슈 분석 — 리프레시 주기 확인", h:2.5}, {t:"코드리뷰 3건", h:null} ] },
+  { d:"08-11", dw:"화", list:[ {t:"배치 재처리 로직 수정", h:4} ] },
+  { d:"08-10", dw:"월", list:[ {t:"주간회의 · 다음 스프린트 일정 조율", h:1} ] },
+  { d:"08-07", dw:"금", list:[ {t:"GTPP 인증 화면 설계 리뷰", h:3}, {t:"배치 로그 분석 착수", h:3} ] }
+];
+/* 그 주 7일(금~목) 순서 — 캘린더/스트립용 */
+const WEEKDAYS = [
+  { dw:"금", d:"08-07" }, { dw:"토", d:"08-08", off:true }, { dw:"일", d:"08-09", off:true },
+  { dw:"월", d:"08-10" }, { dw:"화", d:"08-11" }, { dw:"수", d:"08-12" }, { dw:"목", d:"08-13", today:true }
+];
+/* ② 벤토안에만 등장하는 TODO(신규 기능 후보) — 나머지 시안에는 넣지 않는다. */
+const TODOS = [
+  { t:"GTPP 2차인증 QA 시나리오 작성", due:"08-12", over:true, prio:"높음" },
+  { t:"SSO 운영 반영 요청서 제출", due:"08-13", prio:"높음" },
+  { t:"배치 재처리 테스트 케이스 정리", due:"08-13", prio:"" },
+  { t:"주간보고 제출", due:"08-13", prio:"" },
+  { t:"인증 흐름 문서 최신화", due:"08-14", prio:"" },
+  { t:"배포 체크리스트 검토", due:"08-14", prio:"" }
+];
+
+/* ---------- 공통 헬퍼 ---------- */
+const num = v => String(v).replace(/\.0$/,"");
+const noteSum = g => g.list.reduce((a,b)=> a + (b.h||0), 0);
+const dayHours = d => { const g = NOTES.find(n=>n.d===d); return g ? noteSum(g) : 0; };
+const totalNoteH = NOTES.reduce((a,g)=>a+noteSum(g),0);
+const statusBadge = () => WEEK.status==="draft"
+  ? '<span class="badge draft">작성중</span>' : '<span class="badge done">제출</span>';
+const chevSvg = '<svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
+
+function histRow(r){
+  const low = r.mw < 0.8;
+  return `<div class="hist-card"><div class="hist-summary">
+    <div class="hist-left"><span class="wk">${r.wk}<span class="badge done">제출</span></span><span class="rng">${r.rng}</span></div>
+    <div class="hist-right">
+      <div class="hist-metric"><div class="n tabular">${r.h}h</div><div class="l">시간</div></div>
+      <div class="hist-metric ${low?"low":""}"><div class="n tabular">${r.mw.toFixed(2)}</div><div class="l">맨위크</div></div>
+      ${chevSvg}
+    </div></div></div>`;
+}
+function projRow(p){
+  return `<div class="proj-row">
+    <div class="proj-top"><span class="nm">${p.nm}</span><span class="tk">${p.tk}</span><span class="pc tabular">${p.pct}%</span></div>
+    <div class="bar"><i style="width:${p.pct}%"></i></div>
+    <div class="proj-meta">항목 ${p.items}건 · ${p.hours}h · 최근 보고 ${p.last}</div>
+  </div>`;
+}
+function noteGroup(g, opt){
+  const sum = noteSum(g);
+  const rows = g.list.map(n=>`<div class="daily-item"><span class="tx">${n.t}</span>${
+    n.h!=null ? `<span class="hh">${num(n.h)}h</span>` : `<span class="hh none">—</span>`}</div>`).join("");
+  return `<div class="day-group">
+    <div class="day-head"><span>${g.d.replace("-",".")} (${g.dw})</span>
+      ${g.today?'<span class="today-chip">오늘</span>':""}
+      ${sum>0?`<span class="day-sum">${num(sum)}h</span>`:""}</div>
+    ${rows}</div>`;
+}
+function notesBlock(n){ return NOTES.slice(0,n).map(g=>noteGroup(g)).join(""); }
+const quickAdd = `<div class="quick">
+    <input type="text" placeholder="오늘 한 일을 한 줄로…">
+    <input type="number" placeholder="0" step="0.5"><span class="unit">h</span>
+    <button class="ghost">+ 추가</button></div>`;
+function mwWeeks(){
+  return `<div class="mw-weeks">${AVG.weeks.map(w=>{
+    const low = w.v<0.8, pct = Math.min(100, Math.round(w.v*100));
+    return `<div class="mw-week"><div class="top"><span class="lb">${w.lb}</span><span class="vl ${low?"low":""} tabular">${w.v.toFixed(2)}</span></div>
+      <div class="bar ${low?"low":""}"><i style="width:${pct}%"></i></div></div>`;}).join("")}</div>`;
+}
+function wkStrip(){
+  return `<div class="wk-days">${WEEKDAYS.map(d=>{
+    const h = dayHours(d.d), pct = Math.min(100, Math.round(h/8*100));
+    return `<div class="wk-day ${h?"":"empty"} ${d.today?"today":""}">
+      <span class="dw">${d.dw}</span>
+      <span class="bar-v">${h?`<i style="height:${pct}%"></i>`:""}</span>
+      <span class="hh">${h?num(h)+"h":"—"}</span></div>`;}).join("")}</div>`;
+}
+function itemRow(it){
+  const badges = (it.pc===100?'<span class="badge done">완료</span>':"") + (it.carry?'<span class="badge carry">이월</span>':"");
+  return `<div class="irow">
+    <span class="tk">${it.tk||"—"}</span>
+    <span class="ti">${it.ti}</span>
+    <span class="ph">${it.ph}</span>
+    <span class="hr">${it.h}h</span>
+    <span class="dy">${it.d}일</span>
+    <span class="pcw">${it.pc!=null?`<span class="bar"><i style="width:${it.pc}%"></i></span><span class="n">${it.pc}%</span>`:'<span class="n" style="width:100%;color:var(--text-faint)">—</span>'}</span>
+    <span class="bd">${badges||""}</span></div>`;
+}
+
+
+/* =========================================================================
+   ⑦ 프로젝트 중심 재편 — 프로젝트 카드가 주인공, 주간 요약은 얇은 한 줄
+   ========================================================================= */
+function c7(){
+  const ring = pct => `background:conic-gradient(var(--accent) 0 ${pct}%, var(--surface-sunken) ${pct}% 100%)`;
+  return `<div class="c7 stack">
+    <div class="card thin">
+      <span class="wk">${WEEK.label}</span>${statusBadge()}
+      <span class="m">총 <b class="tabular">${WEEK.hours}h</b></span>
+      <span class="m">맨위크 <b class="tabular low">${WEEK.mw.toFixed(2)}</b> <span style="color:var(--text-faint)">(2주 평균 ${AVG.value.toFixed(2)})</span></span>
+      <span class="m">항목 <b class="tabular">${WEEK.items}건</b></span>
+      <span class="sp"></span>
+      <button class="btn sm">이어서 작성</button>
+    </div>
+    <div class="section-head"><h2>진행중인 프로젝트 <span style="color:var(--text-faint);font-weight:600">${PROJECTS.length}</span></h2>
+      <button class="link-more">완료된 프로젝트 보기 ›</button></div>
+    <div class="pgrid">
+      ${PROJECTS.map(p=>{
+        const rows = ITEMS.filter(i=>i.tk===p.tk);
+        return `<div class="card pcard">
+          <div class="ptop">
+            <div class="ring" style="${ring(p.pct)}">
+              <div style="position:absolute;inset:7px;border-radius:50%;background:var(--surface)"></div>
+              <span style="position:relative">${p.pct}%</span>
+            </div>
+            <div class="pname"><span class="nm">${p.nm}</span><span class="tk">${p.tk}</span></div>
+          </div>
+          <div class="pmeta">
+            <div><span class="k">이번 주</span><span class="v">${p.hours}h</span></div>
+            <div><span class="k">항목</span><span class="v">${p.items}건</span></div>
+            <div><span class="k">최근 보고</span><span class="v" style="font-size:13px">${p.last}</span></div>
+          </div>
+          <div class="plist">${rows.map(r=>`<div class="irow" style="padding:8px 0">
+            <span class="ti">${r.ti}</span><span class="ph">${r.ph}</span><span class="hr">${r.h}h</span>
+            <span class="pcw" style="width:88px"><span class="bar"><i style="width:${r.pc}%"></i></span><span class="n">${r.pc}%</span></span>
+            <span class="bd">${r.pc===100?'<span class="badge done">완료</span>':(r.carry?'<span class="badge carry">이월</span>':"")}</span></div>`).join("")}</div>
+          <div class="pfoot"><button class="ghost">이 프로젝트 항목 추가 ›</button></div>
+        </div>`;}).join("")}
+    </div>
+    <div class="rest">
+      <div class="card">
+        <div class="card-head"><div class="card-title"><h2>오늘 한 일</h2></div><button class="link-more">기록 전체 ›</button></div>
+        ${notesBlock(3)}
+        ${quickAdd}
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><h2>과거 제출본</h2></div><button class="link-more">히스토리 ›</button></div>
+        <div class="dash-list flush">${HISTORY.map(histRow).join("")}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+document.getElementById("stage").innerHTML = c7();
+</script>
+</body>
+</html>
