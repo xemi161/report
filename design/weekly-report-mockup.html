@@ -257,31 +257,39 @@
      대신 내용이 넘칠 수 있는 목록 타일은 .tile-body가 안에서 스크롤한다.
 
      배치는 auto-flow(sparse)에 맡긴다 — 아래 순서로 넣으면 다음 모자이크가 나온다.
-     순서: hero → 지표 4 → 오늘 한 일 → TODO → 맨위크 → 진행중 프로젝트
+     순서: hero → 지표 4 → 오늘 한 일 → TODO
         ┌───────────────┬──────┬──────┐
         │ 이번 주 (6×4)  │ 시간  │ 맨위크│   작은 타일 = 3×2
-        │               ├──────┼──────┤
+        │               ├──────┼──────┤   (행 1-4)
         │               │ 지남  │ 진행중│
         ├───────────────┴──┬───┴──────┤
-        │ 오늘 한 일 (8×6)   │  TODO    │
-        ├─────────┬─────────┤ (4×10)   │
-        │ 맨위크4×4│진행중4×4 │          │
-        └─────────┴─────────┴──────────┘
-     좌측(8칸) 6+4=10행, 우측 TODO 10행 → 두 덩어리가 같은 줄에서 끝난다.
-     ⚠️ 타일을 넣는 순서를 바꾸면 이 계산이 깨진다(grid-auto-flow는 dense가 아니다). */
+        │ 오늘 한 일 (8×6)   │ TODO(4×6)│   (행 5-10)
+        └──────────────────┴──────────┘
+     총 10행 = 상단 띠 4행(hero=지표 2×2) + 하단 띠 6행(오늘 한 일 = TODO).
+     ⚠️ 총 행수는 두 띠의 합이라 아래 span 값과 연동된다 — 어느 한쪽만 고치면 마지막 띠에
+        아무도 채우지 않는 빈 구멍이 남는다(grid-auto-flow는 dense가 아니라 뒤 타일이 앞으로 끌려오지 않는다).
+     ⚠️ 타일을 넣는 순서를 바꿔도 이 계산이 깨진다.
+
+     (2026-08-15) 여기 있던 중간 타일 2개 — "최근 2주 평균 맨위크"(4×4) / "진행중인 프로젝트"(4×4) —
+     를 사용자 요청으로 뺐다. 둘이 차지하던 행 11-14가 통째로 사라져 14행 → 10행.
+     그에 맞춰 TODO를 span 10 → span 6으로 줄여(= 오늘 한 일과 같은 높이) 좌우 두 덩어리가
+     다시 같은 줄에서 끝나게 했다. TODO만 그대로 두면 행 11-14의 좌측 8칸이 빈 구멍이 된다.
+     ⚠️ 두 지표 자체가 앱에서 사라진 건 아니다 — 맨위크는 상단 지표 타일 "이번 주 맨위크"와
+     히스토리 탭의 보고서별 맨위크가, 진행중 프로젝트는 지표 타일 "진행중 프로젝트"(건수+평균 진행률)가
+     계속 받는다. 이 벤토 화면에서 **상세 브레이크다운만** 뺀 것이다. */
   .bento{display:grid; grid-template-columns:repeat(12, minmax(0,1fr)); grid-auto-rows:62px; gap:14px;}
   .bento > *{min-width:0; min-height:0;}
   .bento .card{padding:20px 22px;}
   .dash-wrap{display:flex; flex-direction:column; gap:14px;}
 
-  /* 타일 크기 배정 = 정보의 무게. 매일 손대는 것(오늘 한 일·TODO)이 가장 크고,
-     한눈에 확인만 하는 지표는 가장 작다. 주 단위로 훑는 추세(맨위크·진행중)는 그 중간. */
+  /* 타일 크기 배정 = 정보의 무게. 매일 손대는 것(오늘 한 일·TODO)이 아래 띠를 통째로 차지하고,
+     한눈에 확인만 하는 지표는 가장 작다.
+     중간 타일이 빠진 뒤로 위계는 "면적"보다 **띠(band)**가 말한다 —
+     위 띠 = 이번 주가 어떤 주인가(상태·숫자), 아래 띠 = 지금 뭘 적고 뭘 해야 하나. */
   .t-hero  {grid-column:span 6; grid-row:span 4;}
   .t-metric{grid-column:span 3; grid-row:span 2;}
   .t-daily {grid-column:span 8; grid-row:span 6;}
-  .t-todo  {grid-column:span 4; grid-row:span 10;}
-  .t-mw    {grid-column:span 4; grid-row:span 4;}
-  .t-proj  {grid-column:span 4; grid-row:span 4;}
+  .t-todo  {grid-column:span 4; grid-row:span 6;}  /* 6 = .t-daily와 동일. 이 둘은 항상 같이 움직인다 */
   /* 마지막 줄(과거 보고서)만 내용 높이로 둔다 — 목록 길이가 보고서 개수에 따라 변하므로 62px 격자에 못 박지 않는다.
      같은 12컬럼·같은 gap을 쓰므로 위 모자이크와 한 판으로 읽힌다. */
   .bento-foot{grid-auto-rows:auto;}
@@ -319,12 +327,12 @@
     .bento{grid-template-columns:repeat(6, minmax(0,1fr)); grid-auto-rows:auto;}
     .bento > *{grid-row:auto !important;}
     .t-hero, .t-daily, .t-todo{grid-column:span 6;}
-    .t-metric, .t-mw, .t-proj{grid-column:span 3;}
+    .t-metric{grid-column:span 3;}
     .tile-body{overflow:visible; margin:0; padding:0;}
   }
   @media (max-width:700px){
     .bento{grid-template-columns:repeat(2, minmax(0,1fr));}
-    .t-hero, .t-daily, .t-todo, .t-mw, .t-proj{grid-column:span 2;}
+    .t-hero, .t-daily, .t-todo{grid-column:span 2;}
     .t-metric{grid-column:span 1;}
   }
 
@@ -371,27 +379,11 @@
   .badge.draft{background:var(--accent-soft); color:var(--accent-soft-fg);}
   .badge.idle{background:var(--surface-sunken); color:var(--text-muted);}
 
-  .bar{height:5px; border-radius:999px; background:var(--surface-sunken); overflow:hidden;}
-  .bar > i{display:block; height:100%; border-radius:999px; background:var(--accent);}
-  .bar.low > i{background:var(--danger-border);}
-
-  .mw-big{font-size:34px; font-weight:700; letter-spacing:-.03em; line-height:1.15; margin-top:8px;}
-  .mw-big.low{color:var(--danger-fg);}
-  .mw-sub{font-size:12px; color:var(--text-muted); margin-top:3px;}
-  .mw-weeks{display:flex; flex-direction:column; gap:12px; margin-top:18px; padding-top:16px; border-top:1px solid var(--border-soft);}
-  .mw-week{display:flex; flex-direction:column; gap:6px;}
-  .mw-week .top{display:flex; justify-content:space-between; align-items:baseline; font-size:12px;}
-  .mw-week .top .lb{color:var(--text-muted);}
-  .mw-week .top .vl{font-weight:700;}
-  .mw-week .top .vl.low{color:var(--danger-fg);}
-
-  .proj-row{display:flex; flex-direction:column; gap:8px; padding:14px 0; border-bottom:1px solid var(--border-soft);}
-  .proj-row:last-child{border-bottom:none;}
-  .proj-top{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
-  .proj-top .nm{font-size:13.5px; font-weight:600;}
-  .proj-top .tk{font-size:11.5px; color:var(--text-muted); background:var(--surface-sunken); padding:2px 9px; border-radius:999px;}
-  .proj-top .pc{margin-left:auto; font-size:13px; font-weight:700;}
-  .proj-meta{font-size:11.5px; color:var(--text-faint);}
+  /* (2026-08-15) 가로 진행률 바(.bar)와 맨위크 상세(.mw-*)·진행중 프로젝트 행(.proj-*) 스타일은
+     그 두 타일이 대시보드에서 빠지면서 쓰는 곳이 없어져 함께 지웠다.
+     이 파일이 컴포넌트 스타일의 기준이라 죽은 클래스를 남겨두면 frontend가 살아 있는 것으로 읽는다.
+     되살릴 일이 생기면 이 커밋 직전 리비전에서 그대로 가져올 수 있다.
+     (세로 막대 .wk-day .bar-v는 hero의 요일 스트립이 계속 쓰므로 그대로 둔다.) */
 
   .dash-list{display:flex; flex-direction:column; gap:12px;}
 
@@ -1067,8 +1059,9 @@
 
     const body = [];
 
-    // 추세 지표(최근 2주 평균 맨위크 / 진행중 프로젝트)는 대시보드로 옮겼고,
     // "작성" 탭 상단 통계는 지금 보고 있는 주 자체의 값만 보여준다 — 제출 전 맨위크 확인이 목적.
+    // (추세 지표 중 "최근 2주 평균 맨위크"는 2026-08-15에 대시보드에서도 빠졌다. 여기로 되돌리지 말 것 —
+    //  이 자리는 "지금 이 주"를 보는 곳이고, 여러 주를 겹쳐 읽는 값이 섞이면 어느 주의 숫자인지 흐려진다.)
     const t = computeTotals(wk);
     const itemCount = (wk.projects || []).reduce((n, p) => n + (p.subitems || []).length, 0)
       + (wk.dev || []).length + (wk.etc || []).length + (wk.vacation || []).length;
@@ -1749,9 +1742,9 @@
   }
 
   // ---------- dashboard ----------
-  const RECENT_WEEKS_FOR_AVG = 2;   // "최근 2주 평균 맨위크" — 기존 4주 평균에서 사용자 요청으로 변경
+  // (2026-08-15) RECENT_WEEKS_FOR_AVG(최근 2주 평균 맨위크)는 그 타일이 빠지면서 함께 삭제.
   const RECENT_REPORTS_ON_DASH = 5; // 대시보드에 노출할 과거 보고서 개수(전체는 히스토리 탭)
-  const PROJECT_LOOKBACK = 4;       // 진행중 프로젝트를 찾을 때 거슬러 볼 보고서 수
+  const PROJECT_LOOKBACK = 4;       // 진행중 프로젝트를 찾을 때 거슬러 볼 보고서 수(지표 타일의 건수·평균 진행률용)
 
   /** 프로젝트 진행률 = 세부 항목 완료율의 평균(반올림). 100%면 더는 "진행중"이 아니다. */
   function projectProgress(p){
@@ -1764,6 +1757,9 @@
    * 진행중 프로젝트 — 최근 보고서들을 최신순으로 훑어 일감번호 기준으로 중복을 제거하고,
    * 가장 최근 진행률이 100% 미만인 것만 남긴다.
    * (실제 앱에서는 Project.active == true가 1차 필터가 된다 — design_summary.md 참고)
+   * 2026-08-15 이후 목록 타일이 없어져 대시보드는 이 결과의 **건수와 평균 진행률만** 쓴다
+   * (지표 타일 "진행중 프로젝트"). name/ticket/lastWeek을 계속 돌려주는 건 판정 규칙이 바뀌지 않았음을
+   * 남겨두기 위한 것 — 규칙 자체는 실제 앱의 EntryService.activeProjectsWithProgress()와 같아야 한다.
    */
   function activeProjects(){
     const cur = WEEKS[CURRENT_IDX];
@@ -2077,35 +2073,10 @@
   function renderDashboard(){
     const cur = WEEKS[CURRENT_IDX];
     const past = pastReports();
-    const recent = past.slice(0, RECENT_WEEKS_FOR_AVG);
 
-    // ① 주 단위로 훑는 추세 두 가지 — 최근 2주 평균 맨위크 / 진행중인 프로젝트(중간 크기 타일)
-    const avg = recent.length
-      ? recent.reduce((n, x) => n + Number(computeTotals(x.w).manWeek), 0) / recent.length
-      : 0;
-    const avgLow = avg < LOW_MANWEEK_THRESHOLD;
-    const weekRows = recent.map(({ w }) => {
-      const t = computeTotals(w);
-      return `
-        <div class="mw-week">
-          <div class="top"><span class="lb">${esc(w.label)}</span><span class="vl tabular ${t.low ? "low" : ""}">${t.manWeek}</span></div>
-          <div class="bar ${t.low ? "low" : ""}"><i style="width:${Math.min(100, Number(t.manWeek) * 100)}%"></i></div>
-        </div>`;
-    }).join("") || `<p class="empty-hint">평균을 낼 보고서가 아직 없습니다.</p>`;
-
+    // ① "최근 2주 평균 맨위크"·"진행중인 프로젝트" 큰 타일은 2026-08-15에 뺐다(사용자 요청).
+    // activeProjects()는 계속 쓴다 — 아래 지표 타일이 건수와 평균 진행률을 받기 때문.
     const projects = activeProjects();
-    const projectRows = projects.length
-      ? projects.map(p => `
-        <div class="proj-row">
-          <div class="proj-top">
-            <span class="nm">${esc(p.name)}</span>
-            ${p.ticket ? `<span class="tk">${esc(p.ticket)}</span>` : ""}
-            <span class="pc tabular">${p.pct}%</span>
-          </div>
-          <div class="bar"><i style="width:${p.pct}%"></i></div>
-          <div class="proj-meta">최근 보고 · ${esc(p.lastWeek)}</div>
-        </div>`).join("")
-      : `<p class="empty-hint">진행중인 프로젝트가 없습니다.</p>`;
 
     // ② 작은 지표 타일 4개 — hero 옆 6칸을 2×2로 채운다.
     // 고른 기준: "지금 손을 대야 하나"를 한 숫자로 답할 수 있는 것만. 나머지는 아래 큰 타일이 설명한다.
@@ -2130,8 +2101,8 @@
     ].join("");
 
     // ③ 모자이크 조립. **넣는 순서가 곧 배치**다(.bento 주석의 계산 참고) — 순서를 바꾸면 구도가 무너진다.
-    // 큰 타일(오늘 한 일 / TODO)이 매일 손대는 것, 중간 타일(맨위크 / 진행중)이 주 단위로 훑는 것,
-    // 작은 타일이 한 번 쳐다보고 마는 것. 크기 자체가 "얼마나 자주 쓰는가"를 말한다.
+    // 위 띠(hero + 지표 4)가 "이번 주가 어떤 주인가", 아래 띠(오늘 한 일 + TODO)가 "지금 뭘 하나".
+    // 아래 띠가 매일 손대는 자리라 화면 높이의 절반 이상을 가져간다.
     const recent5 = past.slice(0, RECENT_REPORTS_ON_DASH);
     dashboardView.innerHTML = `
       <div class="dash-wrap">
@@ -2140,18 +2111,6 @@
           ${metrics}
           ${dailyCaptureCardHtml()}
           ${todoCardHtml()}
-          <div class="card tile t-mw">
-            <span class="kicker">최근 ${RECENT_WEEKS_FOR_AVG}주 평균 맨위크</span>
-            <div class="mw-big tabular ${avgLow ? "low" : ""}">${avg.toFixed(2)}</div>
-            <div class="mw-sub">기준 1.00 · ${LOW_MANWEEK_THRESHOLD} 미만이면 낮음으로 표시</div>
-            <div class="tile-body"><div class="mw-weeks">${weekRows}</div></div>
-          </div>
-          <div class="card tile t-proj">
-            <div class="card-head">
-              <div class="card-title"><h2>진행중인 프로젝트</h2><span class="count">${projects.length}건</span></div>
-            </div>
-            <div class="tile-body">${projectRows}</div>
-          </div>
         </div>
         <!-- 과거 보고서 = 모자이크를 받치는 가로로 긴 타일. 카드를 누르면 그 주의 작성(수정) 화면으로 간다. -->
         <div class="bento bento-foot">
